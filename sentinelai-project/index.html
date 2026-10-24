@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SentinelAI – Smart Home Digital Twin</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--pan:rgba(11,16,38,.92);--ln:rgba(129,140,248,.26);--tx:#e7ebff;--mut:#8b96bf;--pur:#8b5cf6;--blu:#3b82f6;--cy:#22d3ee;--ok:#22c55e;--warn:#facc15;--dng:#fb923c;--crit:#ef4444;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#04060f;color:var(--tx);font:13px/1.4 'IBM Plex Sans',system-ui,sans-serif;overflow:hidden}
+body{background:radial-gradient(1200px 700px at 55% 35%,#111c44 0%,#070b1d 55%,#04060f 100%)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+.app{display:grid;grid-template-columns:262px minmax(0,1fr) 356px;grid-template-rows:56px minmax(0,1fr) 146px;height:100vh;min-height:620px}
+.top{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 18px;border-bottom:1px solid var(--ln);background:linear-gradient(90deg,rgba(76,29,149,.4),rgba(8,12,30,.6) 45%,rgba(29,78,216,.28))}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand svg{width:30px;height:33px;flex:none}
+.brand h1{margin:0;font:700 22px/1 'Chakra Petch',sans-serif;letter-spacing:.02em}
+.brand h1 span{color:#8b7bff}
+.brand p{margin:2px 0 0;color:var(--mut);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr{display:flex;align-items:center;gap:10px;flex:none}
+.pill{display:flex;align-items:center;gap:7px;border:1px solid var(--ln);border-radius:20px;padding:4px 11px;font-size:11px;color:#c7cdf0;background:rgba(15,20,48,.7)}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.pill.paused i{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+.clock{font:600 16px 'IBM Plex Mono',monospace;color:#c4b5fd}
+aside{overflow-y:auto;min-height:0;padding:8px 0;scrollbar-width:thin;scrollbar-color:#2a3268 transparent}
+.left{border-right:1px solid var(--ln)}.right{border-left:1px solid var(--ln)}
+.card{background:var(--pan);border:1px solid var(--ln);border-radius:10px;padding:10px 12px;margin:0 8px 8px}
+.card h2{margin:0 0 8px;font:600 12px 'Chakra Petch',sans-serif;letter-spacing:.1em;color:#a5b0e8}
+.btnrow{display:flex;gap:6px}
+.btn{flex:1;border:1px solid var(--ln);background:rgba(30,38,84,.6);border-radius:7px;padding:7px 4px;font-size:11.5px;font-weight:600}
+.btn:hover{border-color:var(--pur)}
+.btn.on{background:linear-gradient(135deg,#6d28d9,#2563eb);border-color:transparent}
+.sub{margin-top:8px;color:var(--mut);font-size:11px}
+.sc{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:1px solid transparent;background:transparent;border-radius:7px;padding:6px 7px;font-size:12.5px}
+.sc:hover{background:rgba(99,102,241,.14)}
+.sc .n{width:20px;height:20px;border-radius:5px;background:rgba(99,102,241,.2);display:grid;place-items:center;font:600 10.5px 'IBM Plex Mono',monospace;color:#c4b5fd;flex:none}
+.sc.on{border-color:var(--pur);background:rgba(109,40,217,.28)}
+.sc.on .n{background:var(--pur);color:#fff}
+.lg{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 7px;font-size:12px}
+.lg i{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor}
+.lg em{margin-left:auto;font:500 11px 'IBM Plex Mono',monospace;color:var(--mut);font-style:normal}
+.lg:hover{background:rgba(99,102,241,.14)}.lg.on{border-color:var(--cy);background:rgba(34,211,238,.1)}
+.hint{margin:6px 0 0;color:var(--mut);font-size:11px}
+.stage{display:flex;flex-direction:column;min-width:0;min-height:0}
+.tools{display:flex;flex-wrap:wrap;gap:6px 12px;padding:6px 10px;border-bottom:1px solid var(--ln);background:rgba(8,12,30,.55)}
+.grp{display:flex;gap:4px;flex-wrap:wrap}
+.tools button{border:1px solid var(--ln);background:rgba(20,27,62,.75);border-radius:6px;padding:3px 8px;font-size:11px}
+.tools button:hover{border-color:var(--cy)}.tools button.on{border-color:var(--cy);color:#a5f3fc;background:rgba(34,211,238,.12)}
+.vp{position:relative;flex:1;min-height:0;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#lead{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.tag{position:absolute;left:0;top:0;pointer-events:auto;cursor:pointer;background:rgba(8,12,30,.86);border:1px solid rgba(140,150,255,.3);border-left:3px solid var(--sc,#22c55e);border-radius:5px;padding:2px 6px 3px;font:500 9px/1.15 'IBM Plex Mono',monospace;white-space:nowrap;color:#9aa6d6;opacity:0}
+.tag b{display:block;font:600 10.5px/1.15 'Chakra Petch',sans-serif;color:var(--sc);letter-spacing:.06em}
+.tag span{display:block;color:#e7ebff;font-weight:600;letter-spacing:.04em}
+.tag.act{border-left-color:#8b5cf6;background:rgba(20,12,44,.86)}
+.tag.mini span,.tag.mini i{display:none}.tag i{display:block;font-style:normal}
+.tag.hl{box-shadow:0 0 0 1px var(--cy),0 0 14px rgba(34,211,238,.5)}
+.banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);padding:7px 18px;border-radius:8px;font:700 14px 'Chakra Petch',sans-serif;letter-spacing:.06em;display:none;white-space:nowrap;border:1px solid;backdrop-filter:blur(4px)}
+.toast{position:absolute;top:52px;right:12px;max-width:260px;padding:8px 12px;border-radius:10px;background:rgba(10,14,34,.94);border:1px solid var(--pur);display:none;font-size:12px}
+.toast b{display:block;font:600 10.5px 'Chakra Petch',sans-serif;color:#c4b5fd;letter-spacing:.08em}
+.tip{position:absolute;pointer-events:none;display:none;background:rgba(6,9,24,.95);border:1px solid var(--cy);border-radius:6px;padding:4px 8px;font:500 11px 'IBM Plex Mono',monospace;z-index:5;white-space:nowrap}
+.rooms{display:flex;gap:6px;flex-wrap:wrap;padding:6px 10px;border-bottom:1px solid var(--ln);background:rgba(8,12,30,.4)}
+.rc{display:flex;align-items:center;gap:7px;border:1px solid var(--ln);background:rgba(20,27,62,.75);border-radius:16px;padding:3px 11px 3px 9px;font-size:11.5px}
+.rc i{width:9px;height:9px;border-radius:50%;background:#22c55e;color:#22c55e;box-shadow:0 0 8px currentColor}
+.rc em{font:500 10px 'IBM Plex Mono',monospace;color:var(--mut);font-style:normal}
+.rc:hover{border-color:var(--cy)}.rc.on{border-color:var(--cy);background:rgba(34,211,238,.15)}
+.rc.alert{animation:rcp 1s ease-in-out infinite}
+@keyframes rcp{50%{box-shadow:0 0 0 3px rgba(250,204,21,.5)}}
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.rpin{position:absolute;left:0;top:0;pointer-events:auto;cursor:pointer;display:none;padding:4px 11px 5px;border-radius:9px;border:1px solid var(--pc,#facc15);background:rgba(8,10,26,.93);color:var(--pc,#facc15);font:700 12px 'Chakra Petch',sans-serif;letter-spacing:.05em;white-space:nowrap;box-shadow:0 0 18px var(--pc,#facc15);z-index:3}
+.rpin small{display:block;font:500 9.5px 'IBM Plex Mono',monospace;color:#c8cff0;letter-spacing:0}
+.rpin:after{content:"";position:absolute;left:50%;bottom:-7px;margin-left:-5px;border:5px solid transparent;border-top:7px solid var(--pc,#facc15)}
+.rmrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border:1px solid rgba(129,140,248,.2);border-radius:8px;margin-bottom:5px;cursor:pointer;background:rgba(18,24,58,.55)}
+.rmrow:hover{border-color:var(--cy)}.rmrow b{font:600 12px 'Chakra Petch',sans-serif}.rmrow span{display:block;color:var(--mut);font-size:11px;line-height:1.3}.rmrow .v{font:500 11px 'IBM Plex Mono',monospace;text-align:right;flex:none}
+.back{border:1px solid var(--ln);background:transparent;border-radius:6px;padding:2px 9px;font-size:11px;margin-bottom:6px;color:#c4b5fd}.back:hover{border-color:var(--cy)}
+.hint2{position:absolute;right:10px;bottom:8px;color:#6b76a3;font-size:10.5px;pointer-events:none;text-align:right;max-width:46%}
+.fh{display:flex;justify-content:space-between;align-items:center;padding:3px 6px;background:rgba(6,10,26,.92);font:600 10px 'Chakra Petch',sans-serif;letter-spacing:.06em;gap:6px}
+.fh .cs{display:flex;gap:3px}.fh button{border:1px solid var(--ln);background:transparent;border-radius:4px;padding:0 5px;font:600 10px 'IBM Plex Mono',monospace}
+.fh button.on{background:var(--pur);border-color:var(--pur)}
+.rec{color:#f87171}
+.fv{position:relative;aspect-ratio:16/9;background:#0a1226;border-radius:6px;overflow:hidden;border:1px solid var(--ln);margin-top:6px}
+.fv canvas{width:100%;height:100%;display:block}
+.fv .live{position:absolute;right:6px;top:5px;font:600 9.5px 'IBM Plex Mono',monospace;color:#f87171;background:rgba(0,0,0,.55);padding:1px 5px;border-radius:3px}
+.call{position:absolute;top:10px;left:10px;max-width:280px;background:rgba(8,12,30,.93);border:1px solid var(--pur);border-radius:9px;padding:8px 11px;display:none;font-size:12px;z-index:4;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.call b{display:flex;gap:8px;align-items:center;font:600 13px 'Chakra Petch',sans-serif}
+.call p{margin:4px 0;color:#d5daf5}.call em{font:500 10.5px 'IBM Plex Mono',monospace;color:var(--mut);font-style:normal}
+.about{background:rgba(109,40,217,.15);border:1px solid rgba(139,92,246,.42);border-radius:8px;padding:8px 10px;margin:2px 0 8px;font-size:12px}
+.about b{font:600 12.5px 'Chakra Petch',sans-serif;color:#ddd6fe}.about p{margin:4px 0 2px;color:#e3e7fb}
+.about dt{color:#c4b5fd;font:600 10.5px 'IBM Plex Mono',monospace;margin-top:6px}.about dd{margin:1px 0 0;color:#d5daf5}
+.fb{position:absolute;border:2px solid var(--cy);display:none}
+.fb span{position:absolute;left:-2px;top:-15px;background:var(--cy);color:#041018;font:700 9px 'IBM Plex Mono',monospace;padding:0 4px;white-space:nowrap}
+#nogl{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--mut)}
+.det .r{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px dashed rgba(129,140,248,.14);font-size:12px}
+.det .r span{color:var(--mut);flex:none}.det .r b{font:500 11.5px 'IBM Plex Mono',monospace;text-align:right;word-break:break-word}
+.det .hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.det .hd strong{font:600 14px 'Chakra Petch',sans-serif}
+.chip{padding:1px 8px;border-radius:10px;font:600 10.5px 'IBM Plex Mono',monospace;border:1px solid}
+.c-ok{color:var(--ok)}.c-warn{color:var(--warn)}.c-danger{color:var(--dng)}.c-crit{color:var(--crit)}.c-active{color:var(--cy)}.c-off{color:#94a3b8}
+.chip.c-ok{background:rgba(34,197,94,.12)}.chip.c-warn{background:rgba(250,204,21,.12)}.chip.c-danger{background:rgba(251,146,60,.12)}.chip.c-crit{background:rgba(239,68,68,.15)}.chip.c-active{background:rgba(34,211,238,.12)}.chip.c-off{background:rgba(148,163,184,.1)}
+.empty{color:var(--mut);font-size:12px}
+#spark{width:100%;height:54px;margin-top:6px;display:none}
+.sys .r{display:flex;justify-content:space-between;padding:2px 0;font-size:12px}.sys .r b{font:500 11.5px 'IBM Plex Mono',monospace;color:var(--ok)}
+.threat{display:flex;align-items:baseline;justify-content:space-between}
+.threat strong{font:700 24px 'Chakra Petch',sans-serif;letter-spacing:.05em}
+.tbar{position:relative;height:9px;border-radius:5px;margin:8px 0 6px;background:linear-gradient(90deg,#22c55e 0 25%,#facc15 25% 50%,#fb923c 50% 75%,#ef4444 75%)}
+.tbar i{position:absolute;top:-5px;width:0;height:0;border:5px solid transparent;border-top:7px solid #fff;margin-left:-5px;transition:left .5s}
+.why{font-size:11px;color:#b6bfe6;margin:0;padding:0;list-style:none}.why li{padding:2px 0 2px 10px;position:relative}.why li:before{content:"";position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:var(--pur)}
+.live{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lv{border:1px solid var(--ln);border-radius:8px;padding:6px 8px;background:rgba(18,24,58,.6)}
+.lv span{display:block;color:var(--mut);font-size:10.5px}.lv b{font:600 13px 'IBM Plex Mono',monospace}
+.al{list-style:none;margin:0;padding:0}.al li{display:flex;gap:9px;padding:6px 0;border-bottom:1px solid rgba(129,140,248,.12)}
+.al i{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:none}
+.al b{display:block;font:500 11px 'IBM Plex Mono',monospace;color:#c4b5fd}.al span{display:block;font-size:12.5px}.al em{display:block;color:var(--mut);font-size:11.5px;font-style:normal}
+.al li.hist{opacity:.6}
+.arch{grid-column:1/-1;border-top:1px solid var(--ln);padding:8px 12px;background:rgba(6,9,24,.75);overflow-x:auto}
+.arch h2{margin:0 0 6px;font:600 12px 'Chakra Petch',sans-serif;letter-spacing:.1em;color:#a5b0e8}
+.flow{display:flex;align-items:stretch;gap:0;min-width:1000px}
+.nd{flex:1;min-width:112px;border:1px solid var(--ln);border-radius:9px;background:rgba(15,20,48,.8);padding:6px 8px;text-align:left;transition:box-shadow .3s,border-color .3s}
+.nd .k{font:600 10px 'IBM Plex Mono',monospace;color:#8b7bff}
+.nd .t{font:600 11.5px/1.2 'Chakra Petch',sans-serif;margin:1px 0 3px}
+.nd .s{font:400 10.5px/1.25 'IBM Plex Mono',monospace;color:#9aa6d6}
+.nd.on{border-color:var(--cy);box-shadow:0 0 14px rgba(34,211,238,.35)}
+.nd.hot{border-color:var(--crit);box-shadow:0 0 14px rgba(239,68,68,.45)}
+.ar{width:22px;flex:none;position:relative;align-self:center;height:2px;background:repeating-linear-gradient(90deg,#6d5cff 0 4px,transparent 4px 8px);background-size:8px 2px;animation:flow 1s linear infinite}
+.ar:after{content:"";position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left:7px solid #6d5cff;border-right:0}
+.paused .ar{animation:none}
+@keyframes flow{to{background-position:8px 0}}
+.dots{display:flex;gap:6px;flex-wrap:wrap}.dots u{text-decoration:none;font:500 10px 'IBM Plex Mono',monospace;color:#64748b}.dots u.on{color:#67e8f9}
+@media (prefers-reduced-motion:reduce){.ar{animation:none}}
+@media (max-width:1080px){
+ html,body{overflow:auto}.app{display:block;height:auto}
+ .stage{height:74vh;min-height:460px}aside{overflow:visible;border:0}
+ .left,.right{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));padding:8px 8px 0}.card{margin:0 0 8px}
+ .hint2{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<header class="top">
+ <div class="brand">
+  <svg viewBox="0 0 40 44"><path d="M20 2 4 8v14c0 11 7 18 16 21 9-3 16-10 16-21V8z" fill="#1b1247" stroke="#8b7bff" stroke-width="2.4"/><circle cx="20" cy="21" r="7" fill="#e7ebff"/><circle cx="20" cy="21" r="3.4" fill="#0b1030"/><circle cx="21.2" cy="19.8" r="1" fill="#67e8f9"/></svg>
+  <div><h1>Sentinel<span>AI</span></h1><p>AI-powered multimodal smart home security &amp; automation · digital twin</p></div>
+ </div>
+ <div class="tr"><div class="pill" id="simPill"><i></i><span id="simTxt">Simulation running</span></div><div class="clock" id="clock">10:46 PM</div><div class="pill">ESP32 · local network</div></div>
+</header>
+
+<aside class="left">
+ <section class="card"><h2>Live camera feed</h2>
+  <div class="fh"><span id="fTitle">CAM-01 · Main Entrance</span><span class="cs" id="fSel"></span></div>
+  <div class="fv" id="fv"><canvas id="fcv" width="480" height="270"></canvas><div class="fb" id="fb"><span id="fbt"></span></div><span class="live">● LIVE</span></div></section>
+ <section class="card"><h2>Simulation</h2>
+  <div class="btnrow"><button class="btn on" id="bStart">Start simulation</button><button class="btn" id="bPause">Pause</button><button class="btn" id="bReset">Reset</button></div>
+  <div class="btnrow" style="margin-top:8px" id="spdRow"><button class="btn on" data-s="1">1×</button><button class="btn" data-s="2">2×</button><button class="btn" data-s="4">4×</button></div><div class="sub" id="scnNow">Scenario: Normal Home</div></section>
+ <section class="card"><h2>Scenarios</h2><div id="scnList"></div></section>
+ <section class="card"><h2>Sensor legend</h2><div id="legend"></div><p class="hint">Click a type to highlight every sensor of that type.</p></section>
+</aside>
+
+<section class="stage">
+ <div class="tools">
+  <div class="grp"><button data-v="iso">3D isometric</button><button data-v="top">Top view</button><button data-v="front">Front view</button><button data-v="home">Reset view</button></div>
+  <div class="grp"><button id="tAll">Show all sensors</button><button id="tLab" class="on">Hide labels</button><button id="tCon" class="on">Show sensor connections</button><button id="tFov" class="on">Show camera FOV</button><button id="tAct">Device labels</button><button id="tSnd">Sound: off</button></div>
+ </div>
+ <div class="rooms" id="rooms"></div>
+ <div class="vp" id="vp">
+  <canvas id="gl"></canvas><svg id="lead"></svg><div id="labels"></div><div id="pins"></div>
+  <div class="banner" id="banner"></div><div class="toast" id="toast"></div><div class="tip" id="tip"></div>
+  <div class="call" id="call"></div>
+  <div class="hint2">Drag: orbit · Right-drag / two fingers: pan · Scroll / pinch: zoom · Click a sensor for details</div>
+  <div id="nogl"><div><b>3D view unavailable</b><br>This simulator needs WebGL and the three.js library from cdnjs. Check that WebGL is enabled and the network can reach cdnjs.cloudflare.com.</div></div>
+ </div>
+</section>
+
+<aside class="right">
+ <section class="card det"><h2>Sensor details</h2><div id="detBody" class="empty">Click any sensor or device in the 3D model to inspect its reading, threshold and status.</div><canvas id="spark" width="600" height="108"></canvas></section>
+ <section class="card sys"><h2>System status</h2>
+  <div class="r"><span>System</span><b>ONLINE</b></div><div class="r"><span>ESP32</span><b>CONNECTED</b></div>
+  <div class="r"><span>Cameras</span><b id="sCam">4/4 ONLINE</b></div><div class="r"><span>Sensors</span><b id="sSen">13/13 ONLINE</b></div><div class="r"><span>Network</span><b>LOCAL</b></div></section>
+ <section class="card"><h2>Threat level</h2>
+  <div class="threat"><strong id="thL">LOW</strong><span class="sub" style="margin:0" id="thC">Fusion confidence 99%</span></div>
+  <div class="tbar"><i id="thP" style="left:12%"></i></div><ul class="why" id="why"></ul></section>
+ <section class="card"><h2>Live sensor data</h2><div class="live" id="live"></div></section>
+ <section class="card"><h2>Recent alerts</h2><ul class="al" id="alerts"></ul></section>
+</aside>
+
+<footer class="arch"><h2>System architecture · click a stage to find it in the model</h2><div class="flow" id="flow"></div></footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+if(typeof THREE==='undefined'){$('nogl').style.display='flex';return;}
+const PI=Math.PI,D2R=PI/180;
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),lerp=(a,b,t)=>a+(b-a)*t;
+const wrapPi=a=>{while(a>PI)a-=2*PI;while(a<-PI)a+=2*PI;return a};
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const approach=(v,t,r)=>v<t?Math.min(t,v+r):Math.max(t,v-r);
+const SC={ok:'#22c55e',warn:'#facc15',danger:'#fb923c',crit:'#ef4444',active:'#22d3ee',off:'#64748b'};
+const SH=k=>parseInt(SC[k].slice(1),16);
+const STN={ok:'NORMAL',warn:'WARNING',danger:'DANGER',crit:'CRITICAL',active:'ACTIVE',off:'OFF'};
+const KINDS={cam:{name:'AI CAMERA',col:'#e2e8f0'},pir:{name:'PIR MOTION',col:'#4ade80'},door:{name:'DOOR / IR SENSOR',col:'#38bdf8'},gas:{name:'MQ-2 GAS SENSOR',col:'#f5c542'},flame:{name:'FLAME SENSOR',col:'#f87171'},smoke:{name:'SMOKE SENSOR',col:'#cbd5e1'},dht:{name:'DHT22',col:'#a78bfa'}};
+const LVN=['LOW','MEDIUM','HIGH','CRITICAL'],LVC=['ok','warn','danger','crit'];
+const T={gas:{warn:240,crit:300},smoke:{warn:100,crit:200},temp:{warn:35,crit:45}};
+
+/* ============ renderer ============ */
+const vp=$('vp'),canvas=$('gl');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}catch(e){$('nogl').style.display='flex';return;}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.setClearColor(0x000000,0);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(30,1.6,1,500);
+scene.add(new THREE.HemisphereLight(0xc9d8ff,0x3a3250,0.6));
+const sun=new THREE.DirectionalLight(0xfff4e6,0.7);sun.position.set(-10,24,14);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-17,right:17,top:17,bottom:-17,near:1,far:70});sun.shadow.bias=-0.0006;sun.shadow.camera.updateProjectionMatrix();scene.add(sun);
+const world=new THREE.Group(),overlay=new THREE.Group(),hitGroup=new THREE.Group();scene.add(world,overlay,hitGroup);
+
+function roomKey(n){n=(n||'').toLowerCase();if(n.indexOf('bedroom 1')>=0)return 'bed1';if(n.indexOf('bedroom 2')>=0)return 'bed2';if(n.indexOf('bath')>=0)return 'bath';if(n.indexOf('kitchen')>=0)return 'kitchen';if(n.indexOf('living')>=0)return 'living';if(n.indexOf('garage')>=0)return 'garage';if(n.indexOf('entrance')>=0||n.indexOf('front')>=0)return 'entrance';if(n.indexOf('backyard')>=0)return 'back';return null;}
+/* ============ helpers ============ */
+const MC={};
+function mat(c,o){const k=c+JSON.stringify(o||{});return MC[k]||(MC[k]=new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.75,metalness:.05},o||{})));}
+const GC={};const glow=c=>GC[c]||(GC[c]=new THREE.MeshBasicMaterial({color:c}));
+function add(p,geo,m,x,y,z){const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;p.add(o);return o;}
+const box=(p,w,h,d,m,x,y,z)=>add(p,new THREE.BoxGeometry(w,h,d),m,x,y,z);
+const cyl=(p,rt,rb,h,m,x,y,z,s)=>add(p,new THREE.CylinderGeometry(rt,rb,h,s||18),m,x,y,z);
+const sph=(p,r,m,x,y,z,s)=>add(p,new THREE.SphereGeometry(r,s||14,s||14),m,x,y,z);
+function cv(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);return c;}
+function tex(w,h,fn){const t=new THREE.CanvasTexture(cv(w,h,fn));t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;}
+const rep=(t,x,y)=>{const c=t.clone();c.needsUpdate=true;c.repeat.set(x,y);return c;};
+const haloT=new THREE.CanvasTexture(cv(64,64,(g)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.3,'rgba(255,255,255,.5)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);}));
+const ringT=new THREE.CanvasTexture(cv(64,64,(g)=>{g.strokeStyle='#fff';g.lineWidth=5;g.beginPath();g.arc(32,32,26,0,PI*2);g.stroke();}));
+const puffT=new THREE.CanvasTexture(cv(64,64,(g)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,.9)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);}));
+const woodT=tex(256,256,(g,w,h)=>{g.fillStyle='#b48a56';g.fillRect(0,0,w,h);for(let i=0;i<8;i++){const y=i*h/8;g.fillStyle='hsl('+(28+Math.random()*6)+','+(38+Math.random()*10)+'%,'+(40+Math.random()*9)+'%)';g.fillRect(0,y,w,h/8-2);g.fillStyle='rgba(40,20,5,.35)';g.fillRect(0,y+h/8-2,w,2);g.fillStyle='rgba(40,20,5,.3)';g.fillRect((i*97)%w,y,2,h/8);}});
+const tileT=(a,b,ln)=>tex(256,256,(g,w,h)=>{const n=4;for(let i=0;i<n;i++)for(let j=0;j<n;j++){g.fillStyle=(i+j)%2?a:b;g.fillRect(i*w/n,j*h/n,w/n,h/n);}g.strokeStyle=ln;g.lineWidth=3;for(let i=0;i<=n;i++){g.beginPath();g.moveTo(i*w/n,0);g.lineTo(i*w/n,h);g.stroke();g.beginPath();g.moveTo(0,i*h/n);g.lineTo(w,i*h/n);g.stroke();}});
+const grassT=tex(256,256,(g,w,h)=>{g.fillStyle='#2f6b34';g.fillRect(0,0,w,h);for(let i=0;i<1400;i++){g.fillStyle='hsl('+(105+Math.random()*25)+','+(35+Math.random()*25)+'%,'+(22+Math.random()*16)+'%)';g.fillRect(Math.random()*w,Math.random()*h,2,3);}});
+const concT=tex(256,256,(g,w,h)=>{g.fillStyle='#4a4f5a';g.fillRect(0,0,w,h);for(let i=0;i<1600;i++){const v=60+Math.random()*30|0;g.fillStyle='rgb('+v+','+(v+3)+','+(v+10)+')';g.fillRect(Math.random()*w,Math.random()*h,2,2);}g.strokeStyle='rgba(0,0,0,.35)';g.lineWidth=2;g.strokeRect(0,0,w,h);});
+const stoneT=tex(256,256,(g,w,h)=>{g.fillStyle='#8f8a7d';g.fillRect(0,0,w,h);for(let i=0;i<2;i++)for(let j=0;j<2;j++){g.fillStyle='hsl(38,8%,'+(52+Math.random()*10)+'%)';g.fillRect(i*128+3,j*128+3,122,122);}});
+const rugT=tex(128,128,(g,w,h)=>{g.fillStyle='#7a2f2a';g.fillRect(0,0,w,h);g.strokeStyle='#d9b26f';g.lineWidth=4;g.strokeRect(8,8,w-16,h-16);g.strokeStyle='#3b2a1f';g.lineWidth=3;g.strokeRect(20,20,w-40,h-40);g.fillStyle='#d9b26f';g.beginPath();g.moveTo(w/2,34);g.lineTo(w-34,h/2);g.lineTo(w/2,h-34);g.lineTo(34,h/2);g.fill();});
+const gingT=tex(64,64,(g,w,h)=>{g.fillStyle='#c9707f';g.fillRect(0,0,w,h);g.fillStyle='#f3c7cf';for(let i=0;i<8;i++)for(let j=0;j<8;j++)if((i+j)%2)g.fillRect(i*8,j*8,8,8);});
+function floor(x0,z0,x1,z1,t,size){const w=x1-x0,d=z1-z0;const p=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshStandardMaterial({map:rep(t,w/size,d/size),roughness:.85,metalness:.02}));p.rotation.x=-PI/2;p.position.set((x0+x1)/2,0.004,(z0+z1)/2);p.receiveShadow=true;world.add(p);return p;}
+function flat(x0,z0,x1,z1,y,t,size){const w=x1-x0,d=z1-z0;const p=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshStandardMaterial({map:rep(t,w/size,d/size),roughness:.9}));p.rotation.x=-PI/2;p.position.set((x0+x1)/2,y,(z0+z1)/2);p.receiveShadow=true;world.add(p);return p;}
+function roomText(txt,x,z,s){const c=cv(512,96,(g,w,h)=>{g.font='700 58px "Chakra Petch",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillStyle='rgba(20,24,50,.55)';g.fillText(txt,w/2+2,h/2+3);g.fillStyle='rgba(255,255,255,.78)';g.fillText(txt,w/2,h/2);});const p=new THREE.Mesh(new THREE.PlaneGeometry(s*1.3*5.33,s*1.3),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false}));p.rotation.x=-PI/2;p.position.set(x,0.03,z);world.add(p);}
+
+/* ============ ground, yard ============ */
+const GY=-0.1;
+add(world,new THREE.BoxGeometry(25.4,0.4,25.4),mat(0x0c1226),0,-0.3,0);
+{const e=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(25.4,0.4,25.4)),new THREE.LineBasicMaterial({color:0x6366f1}));e.position.y=-0.3;world.add(e);}
+[[21,-.8],[15,-1.3],[9,-1.8]].forEach(a=>{const b=add(world,new THREE.BoxGeometry(a[0],.5,a[0]),mat(0x0b1024),0,a[1],0);b.castShadow=false;const e=new THREE.LineSegments(new THREE.EdgesGeometry(b.geometry),new THREE.LineBasicMaterial({color:0x7c6cff,transparent:true,opacity:.6}));e.position.copy(b.position);world.add(e);});
+{const u=glowSprite(0x7c6cff,36,.55);u.position.set(0,-2.8,0);world.add(u);}
+flat(-12.7,-12.7,12.7,12.7,GY,grassT,3.2);
+box(world,18.7,0.1,12.7,mat(0xb9b4aa),0,-0.05,0);
+flat(-1,6.1,1,10.4,GY+0.015,stoneT,1.5);flat(5.2,6.1,8.3,10.4,GY+0.015,concT,3);flat(-3,-8.8,3,-6.2,GY+0.015,stoneT,1.5);
+function tree(x,z,s){const g=new THREE.Group();g.position.set(x,GY,z);g.scale.setScalar(s);world.add(g);cyl(g,.16,.22,1.2,mat(0x5b3a24),0,.6,0,8);sph(g,.95,mat(0x2f7d3a),0,1.7,0,10).scale.y=.85;sph(g,.7,mat(0x3c9a48),.2,2.35,.1,10);}
+function bush(x,z,s,c){const b=sph(world,s,mat(c||0x2b6f35),x,GY+s*.6,z,10);b.scale.y=.7;b.castShadow=false;}
+[[-10.6,-9.3,1.3],[10.4,-9.4,1.2],[-10.8,3.5,1.1],[10.7,4.5,1.2],[-9.8,9.2,.9],[9.8,9.3,.9],[6.5,-9.5,.9],[-6.8,-9.6,1]].forEach(a=>tree(a[0],a[1],a[2]));
+for(let i=0;i<26;i++){const t=i/25;bush(-11.6+t*23.2,-11.3,.55+Math.random()*.2);}
+for(let i=0;i<22;i++){const t=i/21;bush(-11.6,-10.6+t*20.6,.5+Math.random()*.2);bush(11.6,-10.6+t*20.6,.5+Math.random()*.2);}
+[[-8.5,-6.9],[8.6,-6.9],[-9.6,-1],[9.6,-1],[-9.8,7],[9.7,7],[-2.4,6.9],[3,6.9]].forEach(a=>bush(a[0],a[1],.5+Math.random()*.2));
+[[-1.6,6.7],[-1.9,6.6],[1.8,6.7],[2.1,6.7]].forEach((a,i)=>bush(a[0],a[1],.22,i%2?0xd9467a:0xf472b6));
+const brick=mat(0x8a5a44,{roughness:.9});
+box(world,10.7,.5,.3,brick,-6.55,GY+.25,10.4);box(world,10.7,.5,.3,brick,6.55,GY+.25,10.4);
+function glowSprite(c,s,o){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:haloT,color:c,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:o}));m.scale.set(s,s,1);return m;}
+[-11.5,-8.5,-5.5,-2.6,2.6,5.5,8.5,11.5].forEach(x=>{box(world,.28,.75,.28,brick,x,GY+.37,10.4);box(world,.18,.18,.18,glow(0xffd58a),x,GY+.86,10.4);const g=glowSprite(0xffc46b,1,.55);g.position.set(x,GY+.86,10.4);world.add(g);});
+[[-11.6,-9],[11.6,-9],[-11.6,4],[11.6,4]].forEach(a=>{cyl(world,.04,.04,.9,mat(0x222836),a[0],GY+.45,a[1],6);sph(world,.1,glow(0xffd58a),a[0],GY+.95,a[1],8);const g=glowSprite(0xffc46b,.8,.5);g.position.set(a[0],GY+.95,a[1]);world.add(g);});
+
+/* ============ house shell ============ */
+const H=1.6,FH=0.9;
+const WM=mat(0xece7db,{roughness:.92}),WI=mat(0xe4ded0,{roughness:.92}),glassM=new THREE.MeshStandardMaterial({color:0x9ad0ff,transparent:true,opacity:.35,roughness:.1});
+const edgeM=new THREE.LineBasicMaterial({color:0x6b6558,transparent:true,opacity:.55});
+const win=(a,b,y0,y1)=>({a,b,y0:y0||.62,y1:y1||1.28,win:true}),dr=(a,b)=>({a,b,y0:0,y1:99});
+function wall(ax,fx,a0,a1,th,h,cuts,m){
+ const seg=(s,e,y0,y1)=>{if(e-s<.001||y1-y0<.001)return;const l=e-s,c=(s+e)/2,hh=y1-y0,cy=(y0+y1)/2;const mm=ax==='x'?box(world,l,hh,th,m,c,cy,fx):box(world,th,hh,l,m,fx,cy,c);const ed=new THREE.LineSegments(new THREE.EdgesGeometry(mm.geometry),edgeM);ed.position.copy(mm.position);world.add(ed);};
+ let cur=a0;cuts.slice().sort((p,q)=>p.a-q.a).forEach(c=>{seg(cur,c.a,0,h);if(c.y0>0)seg(c.a,c.b,0,c.y0);if(c.y1<h)seg(c.a,c.b,c.y1,h);
+  if(c.win){const l=c.b-c.a,c2=(c.a+c.b)/2,cy=(c.y0+c.y1)/2;if(ax==='x'){box(world,l,c.y1-c.y0,.03,glassM,c2,cy,fx).castShadow=false;box(world,l+.1,.05,th+.08,mat(0xffffff),c2,c.y0,fx);}else{box(world,.03,c.y1-c.y0,l,glassM,fx,cy,c2).castShadow=false;box(world,th+.08,.05,l+.1,mat(0xffffff),fx,c.y0,c2);}}
+  cur=c.b;});seg(cur,a1,0,h);}
+floor(-9,-6,-3,-1,woodT,3);floor(3,-6,9,-1,woodT,3);floor(-3,-6,3,-1,tileT('#4f8fc7','#5b9bd0','#dbeafe'),1.2);
+floor(-9,-1,-4.5,6,tileT('#3a3f4b','#4a5060','#1a1d26'),1.6);floor(-4.5,-1,4.5,6,woodT,3);floor(4.5,-1,9,6,concT,3);
+wall('x',-6,-9.125,9.125,.25,H,[win(-7.4,-5.6),win(5.6,7.4),win(-.7,.7,.8,1.3)],WM);
+wall('z',-9,-6.125,6.125,.25,H,[win(3.6,4.9)],WM);wall('z',9,-6.125,6.125,.25,H,[win(-4.4,-3)],WM);
+wall('x',6,-9.125,9.125,.25,FH,[dr(-1,1),dr(5.2,8.3)],WM);
+wall('x',-1,-9,9,.18,H,[dr(-4.2,-3.3),dr(-.5,.5),dr(3.3,4.2)],WI);
+wall('z',-3,-6,-1,.18,H,[],WI);wall('z',3,-6,-1,.18,H,[],WI);
+wall('z',-4.5,-1,6,.18,H,[dr(2.4,3.8)],WI);wall('z',4.5,-1,6,.18,H,[dr(.2,1.2)],WI);
+const doorM=mat(0x6b4429,{roughness:.7});
+box(world,.9,1.5,.06,doorM,-3.75,.75,-1);box(world,.9,1.5,.06,doorM,3.75,.75,-1);
+{const g=new THREE.Group();g.position.set(-.5,0,-1);g.rotation.y=1.0;world.add(g);box(g,1,1.5,.05,doorM,.5,.75,0);
+ const g2=new THREE.Group();g2.position.set(4.5,0,.2);g2.rotation.y=1.0;world.add(g2);box(g2,.05,1.5,1,doorM,0,.75,.5);}
+/* main gate */
+const gateM=mat(0x5c3a22,{roughness:.6});
+box(world,.16,1.9,.22,gateM,-1.08,.95,6);box(world,.16,1.9,.22,gateM,1.08,.95,6);box(world,2.4,.16,.24,gateM,0,1.85,6);
+const gateL=new THREE.Group(),gateR=new THREE.Group();gateL.position.set(-1,0,6);gateR.position.set(1,0,6);world.add(gateL,gateR);
+box(gateL,.98,1.5,.06,gateM,.5,.75,0);box(gateR,.98,1.5,.06,gateM,-.5,.75,0);
+for(let i=0;i<4;i++){box(gateL,.02,1.4,.07,mat(0x3d2514),.15+i*.22,.75,0).castShadow=false;box(gateR,.02,1.4,.07,mat(0x3d2514),-.15-i*.22,.75,0).castShadow=false;}
+/* garage roller door */
+const rollG=new THREE.Group();rollG.position.set(6.75,1.5,6);world.add(rollG);
+{const t=tex(64,64,(g,w,h)=>{g.fillStyle='#b7c1cf';g.fillRect(0,0,w,h);g.fillStyle='#8792a3';for(let i=0;i<8;i++)g.fillRect(0,i*8+6,w,2);});t.repeat.set(1,1);
+ add(rollG,new THREE.BoxGeometry(3.1,1.5,.06),new THREE.MeshStandardMaterial({map:t,transparent:true,opacity:.62,roughness:.5,metalness:.3}),0,-.75,0).castShadow=false;}
+roomText('BEDROOM 1',-6,-1.9,.55);roomText('BATHROOM',0,-2.3,.55);roomText('BEDROOM 2',6,-1.9,.55);roomText('KITCHEN',-6.7,2.4,.55);roomText('LIVING ROOM',-1.6,2.5,.6);
+roomText('GARAGE',6.75,5,.55);roomText('MAIN ENTRANCE',0,5.2,.5);roomText('FRONT YARD',-5,8.4,.6);roomText('BACKYARD',-6.2,-8,.6);
+
+/* ============ furniture (never above sensors) ============ */
+function bed(x,z,col){const g=new THREE.Group();g.position.set(x,0,z);world.add(g);const wd=mat(0x5a3b26);
+ box(g,2.1,.28,2.3,wd,0,.24,0);box(g,2,.22,2.2,mat(0xf1efe9),0,.46,.02);
+ add(g,new THREE.BoxGeometry(2,.06,1.4),new THREE.MeshStandardMaterial({map:col?gingT:null,color:col?0xffffff:0x8a7a5a,roughness:.9}),0,.6,.42);
+ box(g,.8,.14,.42,mat(0xffffff),-.5,.64,-.75);box(g,.8,.14,.42,mat(0xffffff),.5,.64,-.75);box(g,2.2,.9,.1,wd,0,.55,-1.17);}
+function wardrobe(x,z,yaw){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=yaw;world.add(g);box(g,1.6,1.5,.6,mat(0x6b4429),0,.75,0);box(g,.02,1.4,.02,mat(0x2a1a0e),0,.75,.31);box(g,.05,.3,.03,mat(0xc9a35a),-.1,.8,.32);box(g,.05,.3,.03,mat(0xc9a35a),.1,.8,.32);}
+function sofa(x,z,yaw,len,col){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=yaw;world.add(g);const m=mat(col||0x7a5a3a,{roughness:.85});box(g,len,.4,.85,m,0,.3,0);box(g,len,.5,.22,m,0,.7,-.35);box(g,.2,.55,.85,m,-len/2+.1,.45,0);box(g,.2,.55,.85,m,len/2-.1,.45,0);}
+function table(x,z,w,d,h,c){const g=new THREE.Group();g.position.set(x,0,z);world.add(g);box(g,w,.05,d,mat(c||0x4a3020),0,h,0);[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(a=>box(g,.05,h,.05,mat(0x2a1a0e),a[0]*(w/2-.05),h/2,a[1]*(d/2-.05)));return g;}
+function plant(x,z,s){cyl(world,.16*s,.12*s,.3*s,mat(0xa0522d),x,.15*s,z,10);[[0,.6],[.12,.75],[-.1,.85]].forEach(a=>sph(world,.2*s,mat(0x2f8f46),x+a[0]*s,a[1]*s,z,8));}
+function rug(x,z,w,d){const p=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshStandardMaterial({map:rugT,roughness:.95}));p.rotation.x=-PI/2;p.position.set(x,.012,z);p.receiveShadow=true;world.add(p);}
+bed(-6,-4.3,true);bed(6.3,-4.3,false);wardrobe(-8.6,-2.5,PI/2);wardrobe(8.6,-2.5,-PI/2);
+box(world,.5,.5,.5,mat(0x5a3b26),-7.6,.25,-5.5);box(world,.5,.5,.5,mat(0x5a3b26),7.6,.25,-5.5);rug(-6,-2.6,2.6,1.6);rug(6.3,-2.6,2.6,1.6);plant(8.4,-5.3,1.2);plant(-8.4,-5.3,1);
+/* bathroom */
+{const w=mat(0xffffff,{roughness:.3});cyl(world,.2,.16,.4,w,-1.8,.2,-5.4,14);box(world,.42,.5,.2,w,-1.8,.55,-5.75);
+ box(world,.9,.85,.5,mat(0x8a6a4a),1.3,.42,-5.6);box(world,.6,.06,.4,w,1.3,.87,-5.6);box(world,.8,.45,.03,mat(0xbfe4ff,{metalness:.8,roughness:.1}),1.3,1.3,-5.85);
+ box(world,.8,.55,2.4,w,2.4,.28,-3.6);box(world,.6,.05,2.1,mat(0x60b0e8),2.4,.55,-3.6);}
+/* kitchen */
+{const cab=mat(0x5d4a3a),top=mat(0x232833,{roughness:.3,metalness:.2});
+ box(world,4.25,.85,.6,cab,-6.72,.43,-.61);box(world,4.3,.05,.66,top,-6.72,.88,-.61);
+ box(world,.75,.03,.5,mat(0x0a0c10),-7.2,.92,-.6);[[-.18,-.13],[.18,-.13],[-.18,.13],[.18,.13]].forEach(a=>{const t=add(world,new THREE.TorusGeometry(.07,.015,6,14),mat(0x3a3f4a),-7.2+a[0],.94,-.6+a[1]);t.rotation.x=PI/2;});
+ box(world,.7,.03,.42,mat(0xc0c6d0,{metalness:.8,roughness:.25}),-5.6,.9,-.6);
+ box(world,.6,.85,2.8,cab,-8.55,.43,1.9);box(world,.66,.05,2.86,top,-8.55,.88,1.9);
+ box(world,.7,1.75,.7,mat(0xdfe4ec,{metalness:.5,roughness:.3}),-8.5,.88,5.3);
+ const t=table(-6.4,3.6,1.1,1.1,.75,0x6b4429);[[-.9,0],[.9,0]].forEach(a=>{box(world,.4,.45,.4,mat(0x3a2a1c),-6.4+a[0],.22,3.6);});}
+/* living */
+sofa(.7,3.0,PI/2,2.2);sofa(2.4,.8,0,1.5,0x6a4c30);sofa(2.3,5.1,PI,1.3,0x6a4c30);rug(2.0,3.0,3.0,2.6);
+table(2.0,3.0,.7,1.1,.4,0x3a2415);
+{const g=new THREE.Group();g.position.set(4.15,0,3.0);g.rotation.y=-PI/2;world.add(g);box(g,2.0,.5,.4,mat(0x3a2415),0,.25,0);box(g,1.4,.8,.06,mat(0x05070d),0,.95,0);
+ const tvMat=new THREE.MeshStandardMaterial({color:0x0a0d18,emissive:0x2563eb,emissiveIntensity:0});const sc=new THREE.Mesh(new THREE.PlaneGeometry(1.3,.72),tvMat);sc.position.set(0,.95,.04);g.add(sc);window.__tv=tvMat;}
+const TVM=window.__tv;
+plant(-4,5.5,1.1);plant(4,-.4,1);
+{const g=new THREE.Group();g.position.set(-3.7,0,4.4);world.add(g);box(g,.5,.05,.5,mat(0x4a3020),0,.55,0);box(g,.06,.55,.06,mat(0x2a1a0e),0,.27,0);}
+{table(-1.7,-.45,.95,.5,.5,0x3a2a1c);const l=new THREE.Group();l.position.set(-1.7,.53,-.4);world.add(l);box(l,.55,.03,.38,mat(0x9aa4b4,{metalness:.7}),0,0,0);
+ const lt=new THREE.CanvasTexture(cv(128,80,(g,w,h)=>{g.fillStyle='#061024';g.fillRect(0,0,w,h);g.fillStyle='#67e8f9';g.font='700 34px "Chakra Petch",sans-serif';g.textAlign='center';g.fillText('AI',w/2,h/2+4);g.font='10px monospace';g.fillStyle='#a5b4fc';g.fillText('PERSON · FACE · FUSION',w/2,h-12);}));
+ const sc=new THREE.Mesh(new THREE.PlaneGeometry(.55,.34),new THREE.MeshBasicMaterial({map:lt}));sc.position.set(0,.19,-.16);sc.rotation.x=-.25;l.add(sc);}
+/* garage */
+function car(x,z){const g=new THREE.Group();g.position.set(x,0,z);world.add(g);const b=mat(0xf5f7fa,{roughness:.25,metalness:.5}),gl=mat(0x1b2740,{roughness:.1,metalness:.6});
+ box(g,1.85,.5,4.4,b,0,.5,0);box(g,1.6,.42,2.3,gl,0,.95,-.1);box(g,1.62,.05,1.9,b,0,1.18,-.1);
+ [[-.9,-1.4],[.9,-1.4],[-.9,1.4],[.9,1.4]].forEach(a=>{const w=cyl(g,.34,.34,.22,mat(0x0d0f14),a[0],.34,a[1],14);w.rotation.z=PI/2;});
+ box(g,.4,.12,.05,glow(0xfff2c0),-.6,.62,2.21);box(g,.4,.12,.05,glow(0xfff2c0),.6,.62,2.21);box(g,.4,.1,.05,glow(0xb91c1c),-.6,.65,-2.21);box(g,.4,.1,.05,glow(0xb91c1c),.6,.65,-2.21);}
+car(6.75,2.5);box(world,.6,.9,3,mat(0x6b5a48),8.55,.45,1.8);box(world,.3,.3,.4,mat(0xb45309),8.55,1.05,.9);box(world,.3,.2,.5,mat(0x1d4ed8),8.55,1,2.4);
+
+/* ============ registry: sensors + devices ============ */
+const ALL=[],pickables=[],LAMPS={};
+const hitMat=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
+function mk(d){
+ const g=new THREE.Group();g.position.set(d.x,d.y,d.z);g.rotation.order='YXZ';world.add(g);
+ let yaw=d.yaw||0,pitch=0;
+ if(d.aim){const dx=d.aim[0]-d.x,dz=d.aim[2]-d.z;yaw=Math.atan2(dx,dz);pitch=Math.atan2(d.y-d.aim[1],Math.hypot(dx,dz));}
+ g.rotation.y=yaw;g.rotation.x=pitch;
+ const s=Object.assign({label:d.kind&&KINDS[d.kind]?KINDS[d.kind].name:'',isAct:d.kind==='act',baseScale:d.scale||(d.kind==='act'?1:1.4)},d);
+ if(d.build)d.build(g,s);
+ const PL={pir:[.36,.36],door:[.22,.44],gas:[.46,.34],flame:[.42,.32],dht:[.26,.38]};
+ if(PL[d.kind]){const q=PL[d.kind];box(g,q[0]+.04,q[1]+.04,.012,new THREE.MeshBasicMaterial({color:parseInt(KINDS[d.kind].col.slice(1),16)}),0,0,-.02).castShadow=false;box(g,q[0],q[1],.02,mat(0x0b1020),0,0,-.005).castShadow=false;}
+ g.scale.setScalar(s.baseScale);
+ Object.assign(s,{rk:roomKey(d.room),g,yaw,pitch,fov:(d.fov||90)*D2R,range:d.range||6,pos:new THREE.Vector3(d.x,d.y+.02,d.z),st:s.isAct?'off':'ok',val:'',last:'System boot – self-test OK',sc:1,ph:Math.random()*6,pulseUntil:0,hov:false,sel:false});
+ const h=new THREE.Sprite(new THREE.SpriteMaterial({map:ringT,color:SH(s.st),transparent:true,depthTest:false,depthWrite:false,opacity:.8}));h.renderOrder=20;h.position.copy(s.pos);overlay.add(h);s.halo=h;
+ const hit=new THREE.Mesh(new THREE.SphereGeometry(d.hr||.42,8,6),hitMat);hit.position.copy(s.pos);hit.userData.s=s;hitGroup.add(hit);pickables.push(hit);
+ ALL.push(s);return s;}
+function pole(x,z,h){cyl(world,.035,.035,h,mat(0x9aa4b4,{metalness:.7}),x,h/2,z,8);cyl(world,.12,.14,.05,mat(0x3a4152),x,.025,z,12);}
+/* sensor models: local +z is the sensing direction */
+function buildCam(g){box(g,.09,.09,.12,mat(0x2a3142),0,0,-.1);const c=(r1,r2,l,m,z)=>{const o=cyl(g,r1,r2,l,m,0,0,z);o.rotation.x=PI/2;return o;};
+ c(.1,.1,.34,mat(0xf1f5f9,{roughness:.35,metalness:.2}),.02);c(.125,.11,.12,mat(0xdfe6ee),.17);c(.075,.075,.03,mat(0x05070d,{roughness:.1,metalness:.8}),.235);
+ const r=add(g,new THREE.TorusGeometry(.065,.012,6,16),glow(0x22d3ee),0,0,.252);sph(g,.02,glow(0xef4444),.07,.09,0,6);}
+function buildPIR(g){box(g,.24,.24,.06,mat(0xf3f4f6),0,0,.03);const d=new THREE.Mesh(new THREE.SphereGeometry(.1,18,12,0,PI*2,0,PI/2),mat(0xffffff,{roughness:.3}));d.rotation.x=PI/2;d.position.z=.06;d.castShadow=true;g.add(d);
+ box(g,.24,.03,.062,mat(0x22c55e,{emissive:0x16a34a,emissiveIntensity:.8}),0,-.105,.031);sph(g,.018,glow(0x22c55e),.08,.09,.07,6);}
+function buildDoor(g,s){box(g,.09,.32,.05,mat(0xf1f5f9),0,0,.025);box(g,.05,.05,.052,mat(0x38bdf8,{emissive:0x0ea5e9,emissiveIntensity:.8}),0,.1,.028);sph(g,.02,glow(0x22d3ee),0,-.12,.055,6);
+ const b=new THREE.Group();g.add(b);box(b,.07,.18,.045,mat(0xe2e8f0),0,0,.022);cyl(b,.014,.014,.02,mat(0x111827),0,.05,.05,6).rotation.x=PI/2;s.mag=b;b.position.x=s.dir*.14;}
+function buildGas(g){box(g,.34,.24,.03,mat(0x1d4ed8,{roughness:.5}),0,0,.015);const c=cyl(g,.085,.085,.1,mat(0xc0c6d0,{metalness:.8,roughness:.3}),-.03,0,.08);c.rotation.x=PI/2;
+ const c2=cyl(g,.06,.06,.012,mat(0x2b2f3a),-.03,0,.135);c2.rotation.x=PI/2;box(g,.05,.05,.04,mat(0x0ea5e9),.11,-.06,.05);sph(g,.02,glow(0xfbbf24),.13,.09,.04,6);}
+function buildFlame(g){box(g,.3,.22,.03,mat(0xb91c1c,{roughness:.5}),0,0,.015);sph(g,.055,mat(0x0b0b10,{roughness:.2}),.06,.02,.06,10);sph(g,.035,mat(0x1b1b24),-.07,.05,.05,8);sph(g,.02,glow(0xff3b30),.11,-.07,.04,6);box(g,.05,.05,.04,mat(0x0ea5e9),-.1,-.06,.05);}
+function buildSmoke(g){const s=cyl(g,.05,.05,.12,mat(0x94a3b8),0,0,.05,10);s.rotation.x=PI/2;const a=cyl(g,.18,.18,.07,mat(0xf1f5f9),0,0,.13);a.rotation.x=PI/2;const b=cyl(g,.13,.13,.02,mat(0xcbd5e1),0,0,.17);b.rotation.x=PI/2;const c=cyl(g,.05,.05,.02,mat(0x111827),0,0,.185,10);c.rotation.x=PI/2;sph(g,.02,glow(0x22c55e),.12,.08,.18,6);}
+function buildDHT(g){box(g,.16,.26,.07,mat(0xf8fafc),0,0,.035);for(let i=0;i<6;i++)box(g,.11,.008,.004,mat(0x64748b),0,.09-i*.02,.072).castShadow=false;box(g,.16,.03,.072,mat(0x8b5cf6,{emissive:0x6d28d9,emissiveIntensity:.8}),0,-.11,.036);for(let i=0;i<4;i++)box(g,.01,.06,.01,mat(0xc0c6d0),-.045+i*.03,-.19,.03);}
+const SPEC=[
+ ['CAM-01','cam','Main Entrance',{x:2.4,y:1.2,z:6.05,aim:[.3,0,8.8],fov:70,range:6.5,perim:'high',scale:1.5,dev:'ESP32 gateway · Wi-Fi stream',build:buildCam}],
+ ['CAM-02','cam','Living Room',{x:3.9,y:1.75,z:5.2,aim:[-1.5,0,1.5],fov:75,range:8,perim:'high',scale:1.5,dev:'ESP32 gateway · Wi-Fi stream',build:buildCam,pole:1}],
+ ['CAM-03','cam','Kitchen',{x:-5,y:1.75,z:5.4,aim:[-7.5,0,1.5],fov:80,range:6.5,perim:'high',scale:1.5,dev:'ESP32 gateway · Wi-Fi stream',build:buildCam,pole:1}],
+ ['CAM-04','cam','Backyard',{x:0,y:1.72,z:-6.1,aim:[0,0,-9.4],fov:110,range:6.5,perim:'med',scale:1.5,dev:'ESP32 gateway · Wi-Fi stream',build:buildCam}],
+ ['PIR-01','pir','Living Room',{x:1.6,y:1.1,z:-.9,yaw:0,fov:120,range:7,dev:'ESP32 · GPIO13',build:buildPIR}],
+ ['PIR-02','pir','Main Entrance',{x:-1.75,y:1.02,z:6,yaw:.35,fov:120,range:6,out:1,dev:'ESP32 · GPIO14',build:buildPIR}],
+ ['PIR-03','pir','Bedroom 1',{x:-4.3,y:1.1,z:-5.86,yaw:0,fov:110,range:5.5,dev:'ESP32 · GPIO16',build:buildPIR}],
+ ['PIR-04','pir','Bedroom 2',{x:4.3,y:1.1,z:-5.86,yaw:0,fov:110,range:5.5,dev:'ESP32 · GPIO17',build:buildPIR}],
+ ['PIR-05','pir','Garage',{x:8.3,y:1.1,z:-.9,yaw:0,fov:110,range:6,dev:'ESP32 · GPIO18',build:buildPIR}],
+ ['DOOR-01','door','Main Entrance',{x:1.08,y:1.05,z:6.12,dir:-1,dev:'ESP32 · GPIO19',build:buildDoor}],
+ ['DOOR-02','door','Garage Door',{x:5.05,y:1.05,z:6.05,dir:1,dev:'ESP32 · GPIO5',build:buildDoor}],
+ ['DOOR-03','door','Bedroom 1 Door',{x:-3.15,y:1.15,z:-.9,dir:-1,dev:'ESP32 · GPIO15',build:buildDoor}],
+ ['DOOR-04','door','Bedroom 2 Door',{x:3.15,y:1.15,z:-.9,dir:1,dev:'ESP32 · GPIO23',build:buildDoor}],
+ ['GAS-01','gas','Kitchen',{x:-8.2,y:1.15,z:-.9,dev:'ESP32 · GPIO34 (ADC1)',build:buildGas}],
+ ['FLAME-01','flame','Kitchen',{x:-7.2,y:1.15,z:-.9,dev:'ESP32 · GPIO27',build:buildFlame}],
+ ['SMOKE-01','smoke','Kitchen',{x:-6.2,y:1.35,z:-.9,dev:'ESP32 · GPIO35 (ADC1)',build:buildSmoke}],
+ ['TEMP-01','dht','Living Room',{x:-3.7,y:.95,z:4.4,yaw:.35,dev:'ESP32 · GPIO4 (1-wire)',build:buildDHT}]
+];
+SPEC.forEach(a=>{const o=Object.assign({id:a[0],kind:a[1],room:a[2]},a[3]);if(o.pole)pole(o.x,o.z,1.62);mk(o);});
+const SENS=ALL.filter(s=>!s.isAct);
+SENS.forEach(s=>{if(s.kind==='cam'||s.kind==='pir')s.fovG=buildFan(s);});
+function buildFan(s){const g=new THREE.Group(),R=s.range,half=s.fov/2,N=24,y0=.035,p=s.pos,pos=[p.x,y0,p.z],pts=[];
+ for(let i=0;i<=N;i++){const a=s.yaw-half+s.fov*i/N,x=p.x+Math.sin(a)*R,z=p.z+Math.cos(a)*R;pos.push(x,y0,z);pts.push(new THREE.Vector3(x,y0+.01,z));}
+ const idx=[];for(let i=1;i<=N;i++)idx.push(0,i,i+1);const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);
+ const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x22d3ee,transparent:true,opacity:.14,depthWrite:false,side:THREE.DoubleSide}));g.add(m);
+ const arc=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x22d3ee,transparent:true,opacity:.7}));g.add(arc);
+ const ls=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([p.clone(),pts[0],p.clone(),pts[N],p.clone(),pts[N/2]]),new THREE.LineBasicMaterial({color:0x22d3ee,transparent:true,opacity:.55}));g.add(ls);
+ g.userData.mats=[m.material,arc.material,ls.material];g.visible=false;overlay.add(g);return g;}
+
+/* ---- control panel: ESP32, OLED, relays ---- */
+const oledC=cv(256,128,()=>{}),oledT=new THREE.CanvasTexture(oledC);const relayLed=[];
+{const g=new THREE.Group();g.position.set(-1.7,1.2,-.84);world.add(g);
+ box(g,1.62,.82,.1,mat(0x151b30,{roughness:.5,metalness:.3}),0,0,0);box(g,1.66,.03,.11,mat(0x8b5cf6,{emissive:0x6d28d9,emissiveIntensity:.9}),0,.425,0);
+ box(g,.66,.36,.025,mat(0x0b1a16,{roughness:.6}),-.42,.1,.062);box(g,.3,.22,.03,mat(0xc7ccd6,{metalness:.9,roughness:.25}),-.3,.1,.088);box(g,.16,.1,.02,mat(0x1f2937),-.62,.1,.082);
+ for(let i=0;i<3;i++)sph(g,.012,glow(i?0x22d3ee:0x22c55e),-.68+i*.05,.24,.08,6);
+ for(let i=0;i<10;i++){box(g,.02,.03,.03,mat(0xd6b25a),-.68+i*.05,.29,.075);box(g,.02,.03,.03,mat(0xd6b25a),-.68+i*.05,-.09,.075);}
+ box(g,.52,.28,.03,mat(0x05070d),.4,.14,.065);const sc=new THREE.Mesh(new THREE.PlaneGeometry(.46,.22),new THREE.MeshBasicMaterial({map:oledT}));sc.position.set(.4,.14,.082);g.add(sc);
+ for(let i=0;i<3;i++){const x=-.45+i*.45;box(g,.34,.2,.03,mat(0x1d4ed8),x,-.25,.062);box(g,.16,.13,.08,mat(0x1e3a8a),x-.03,-.25,.1);const m=new THREE.MeshBasicMaterial({color:0x14532d});relayLed.push(m);add(g,new THREE.SphereGeometry(.02,6,6),m,x+.11,-.19,.085);}}
+const HUB=new THREE.Vector3(-2.12,1.3,-.77);
+/* ---- actuators ---- */
+function buildBuzzer(g,s){cyl(g,.16,.18,.05,mat(0x3a4152),0,0,0);const d=cyl(g,.13,.15,.16,mat(0x991b1b,{emissive:0x7f1d1d,emissiveIntensity:.3}),0,.1,0,16);s.dome=d;}
+const fanBuild=(g,s)=>{box(g,.56,.56,.08,mat(0xd1d5db),0,0,.04);cyl(g,.25,.25,.02,mat(0x111827),0,0,.085,20).rotation.x=PI/2;const b=new THREE.Group();b.position.z=.1;g.add(b);
+ for(let i=0;i<4;i++){const bl=box(b,.2,.06,.008,mat(0x94a3b8),0,0,0);bl.rotation.z=i*PI/2;bl.position.set(Math.cos(i*PI/2)*.1,Math.sin(i*PI/2)*.1,0);bl.rotation.z=i*PI/2+.3;}s.blades=b;};
+const acBuild=(g,s)=>{box(g,.9,.28,.24,mat(0xf1f5f9),0,0,.12);box(g,.8,.05,.05,mat(0x94a3b8),0,-.08,.25);const l=new THREE.MeshBasicMaterial({color:0x1e3a5f});s.led=l;add(g,new THREE.SphereGeometry(.02,6,6),l,.36,.06,.25);};
+mk({id:'ESP32-01',kind:'act',label:'ESP32 EDGE CONTROLLER',room:'Control panel · Living Room',x:-2.12,y:1.3,z:-.77,hr:.32,noConn:1,dev:'Wi-Fi · MQTT · I²C',rule:'Reads every sensor, drives the relays, forwards events to the AI unit'});
+mk({id:'OLED-01',kind:'act',label:'OLED DISPLAY',room:'Control panel · Living Room',x:-1.3,y:1.32,z:-.77,hr:.26,noConn:1,dev:'ESP32 · I²C (GPIO21/22)',rule:'Shows threat level, key readings and actuator states'});
+mk({id:'RLY-01/02/03',kind:'act',label:'RELAY MODULES',room:'Control panel · Living Room',x:-1.7,y:.96,z:-.77,hr:.3,noConn:1,dev:'ESP32 · GPIO32 / 26 / 33',rule:'RLY-01 lights · RLY-02 exhaust fan · RLY-03 appliances'});
+mk({id:'BUZ-01',kind:'act',label:'BUZZER / ALARM',room:'Main Entrance',x:-3.1,y:.93,z:6,build:buildBuzzer,dev:'ESP32 · GPIO25',rule:'Sounds when threat ≥ HIGH, a gas leak or a flame is confirmed'});
+mk({id:'FAN-01',kind:'act',label:'EXHAUST FAN',room:'Kitchen',x:-5.3,y:1.1,z:-.9,build:fanBuild,dev:'RLY-02 · GPIO26',rule:'Runs when gas ≥ 240 ppm or smoke ≥ 100 ppm'});
+mk({id:'AC-01',kind:'act',label:'SMART AC',room:'Living Room',x:4.36,y:1.25,z:4.4,yaw:-PI/2,build:acBuild,dev:'RLY-03 · GPIO33',rule:'Cools the home when temperature ≥ 32 °C'});
+mk({id:'TV-01',kind:'act',label:'SMART TV',room:'Living Room',x:4.1,y:.95,z:3.0,hr:.4,dev:'RLY-03 · GPIO33',rule:'Switches on when a known resident is in the living room'});
+const FAN=ALL.find(s=>s.id==='FAN-01'),BUZ=ALL.find(s=>s.id==='BUZ-01'),AC=ALL.find(s=>s.id==='AC-01'),TVD=ALL.find(s=>s.id==='TV-01'),ESP=ALL[ALL.length-7],OLED=ALL[ALL.length-6],RLY=ALL[ALL.length-5];
+function lamp(key,x,z,h,dev,range){const g=new THREE.Group();g.position.set(x,0,z);world.add(g);cyl(g,.05,.07,.04,mat(0x222836),0,.02,0,10);cyl(g,.018,.018,h,mat(0x2a3040),0,h/2,0,8);
+ const bulb=new THREE.Mesh(new THREE.SphereGeometry(.13,14,12),new THREE.MeshBasicMaterial({color:0x3a4058}));bulb.position.y=h+.05;g.add(bulb);
+ const pl=new THREE.PointLight(0xffd9a0,0,range||9,1.5);pl.position.set(x,h+.3,z);scene.add(pl);const gl=glowSprite(0xffd9a0,1.1,0);gl.position.set(x,h+.05,z);world.add(gl);
+ const L={key,bulb,pl,gl,level:0,target:0};LAMPS[key]=L;if(dev){L.dev=mk({id:dev[0],kind:'act',label:'SMART LIGHT',room:dev[1],x:x,y:h+.05,z:z,hr:.3,dev:'RLY-01 · GPIO32',rule:'Occupancy- and threat-aware: on for presence, all on for fire / gas'});}return L;}
+lamp('living',-3.9,1.2,1.3,['LIGHT-01','Living Room'],10);lamp('kitchen',-5.2,1.6,1.3,['LIGHT-02','Kitchen'],8);lamp('entrance',1.7,7,1.1,['LIGHT-03','Main Entrance'],8);lamp('garage',8.5,5.4,1.3,['LIGHT-04','Garage'],7);
+lamp('bed1',-7.6,-5.5,.85,null,6);lamp('bed2',7.6,-5.5,.85,null,6);lamp('bath',-.4,-5.4,1.1,null,6);lamp('back',-3.5,-7.2,1.2,null,8);
+const ACTS=ALL.filter(s=>s.isAct);[ESP,OLED,BUZ,FAN].forEach(a=>a.core=1);
+/* connection lines + data pulses */
+const conns=[];
+ALL.forEach(s=>{if(s.noConn)return;const a=s.isAct?HUB.clone():s.pos.clone(),b=s.isAct?s.pos.clone():HUB.clone(),m=a.clone().lerp(b,.5);m.y+=1.2+a.distanceTo(b)*.14;
+ const c=new THREE.QuadraticBezierCurve3(a,m,b);const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(c.getPoints(28)),new THREE.LineBasicMaterial({color:s.isAct?0x8b5cf6:0x22d3ee,transparent:true,opacity:.24,depthWrite:false}));
+ const dot=new THREE.Mesh(new THREE.SphereGeometry(.07,8,8),new THREE.MeshBasicMaterial({color:0x67e8f9}));overlay.add(line,dot);conns.push({s,c,line,dot,u:Math.random()});s.conn=conns[conns.length-1];});
+/* selection ring, buzzer rings */
+const selRing=new THREE.Sprite(new THREE.SpriteMaterial({map:ringT,color:0xffffff,transparent:true,depthTest:false,opacity:.95}));selRing.renderOrder=25;selRing.visible=false;overlay.add(selRing);
+const bzRings=[0,1].map(()=>{const r=new THREE.Sprite(new THREE.SpriteMaterial({map:ringT,color:0xef4444,transparent:true,depthWrite:false,opacity:0}));r.position.set(-3.1,1.1,6);world.add(r);return r;});
+
+/* ============ fire / smoke / gas fx ============ */
+const fireG=new THREE.Group();fireG.position.set(-7.2,.95,-.6);world.add(fireG);fireG.visible=false;
+const flames=[];for(let i=0;i<6;i++){const f=new THREE.Mesh(new THREE.ConeGeometry(.1,.34,8),new THREE.MeshBasicMaterial({color:i%2?0xffb020:0xff5a1a,transparent:true,opacity:.9}));f.position.set(rnd(-.3,.3),.17,rnd(-.15,.15));fireG.add(f);flames.push(f);}
+const fireL=new THREE.PointLight(0xff7a2a,0,6,1.5);fireL.position.set(-7.2,1.3,-.2);scene.add(fireL);
+const puffs=[];for(let i=0;i<26;i++){const p=new THREE.Sprite(new THREE.SpriteMaterial({map:puffT,color:0x8a919e,transparent:true,depthWrite:false,opacity:0}));p.visible=false;p.userData={life:0,max:3};world.add(p);puffs.push(p);}
+const gasC=[];for(let i=0;i<9;i++){const p=new THREE.Sprite(new THREE.SpriteMaterial({map:puffT,color:0xd4e157,transparent:true,depthWrite:false,opacity:0}));p.userData={ph:Math.random()*6,bx:-7.2+rnd(-1.6,1.6),bz:rnd(-.2,1.2)};world.add(p);gasC.push(p);}
+let puffAcc=0;
+function fxUpdate(dt,t){
+ const fl=state.flame;fireG.visible=fl;fireL.intensity=fl?1.6+Math.sin(t*20)*.3:0;
+ flames.forEach((f,i)=>{f.scale.set(1+Math.sin(t*14+i)*.25,1+Math.sin(t*11+i*2)*.4,1);});
+ const sm=clamp((state.smoke-45)/160,0,1);puffAcc+=dt*sm*8;
+ if(puffAcc>1){puffAcc=0;const p=puffs.find(q=>!q.visible);if(p){p.visible=true;p.userData.life=0;p.position.set(-7.2+rnd(-.5,.5),1.05,-.4+rnd(-.2,.3));p.scale.setScalar(.4);}}
+ puffs.forEach(p=>{if(!p.visible)return;const u=p.userData;u.life+=dt;const k=u.life/u.max;if(k>=1){p.visible=false;p.material.opacity=0;return;}p.position.y+=dt*.5;p.position.x+=dt*.08;p.scale.setScalar(.4+k*1.6);p.material.opacity=.4*(1-k)*(state.flame?1.4:1);});
+ const gv=clamp((state.gas-190)/200,0,1);gasC.forEach(p=>{const u=p.userData;p.position.set(u.bx+Math.sin(t*.6+u.ph)*.4,.9+Math.sin(t*.8+u.ph)*.25+gv*.3,u.bz+Math.cos(t*.5+u.ph)*.3);p.scale.setScalar(1.0+gv*.8);p.material.opacity=gv*.28;});
+}
+
+/* ============ actors (people) ============ */
+function person(col,hood){const g=new THREE.Group(),sk=mat(0xe0b48f),bd=mat(col);const L=new THREE.Group(),R=new THREE.Group();L.position.set(-.08,.6,0);R.position.set(.08,.6,0);g.add(L,R);
+ cyl(L,.055,.05,.6,mat(0x1f2937),0,-.3,0,8);cyl(R,.055,.05,.6,mat(0x1f2937),0,-.3,0,8);cyl(g,.15,.18,.62,bd,0,.92,0,10);sph(g,.12,sk,0,1.4,0,12);
+ cyl(g,.04,.04,.5,bd,-.21,.95,0,8);cyl(g,.04,.04,.5,bd,.21,.95,0,8);if(hood){sph(g,.14,mat(0x0f172a),0,1.43,-.01,12);box(g,.17,.05,.02,mat(0x000000),0,1.4,.12);}g.userData.legs=[L,R];return g;}
+const ACT={
+ resident:{col:0x3b82f6,hood:0,known:1,speed:.85,loop:'loop',path:[[-.6,5],[-.6,1.6],[-2.6,1],[-3,3],[-1.8,4.4]],name:'Resident'},
+ intruder:{col:0x1f2937,hood:1,known:0,speed:1.15,loop:0,path:[[.2,11],[.3,8.9],[.5,7.6]],name:'Unknown'},
+ prowler:{col:0x1f2937,hood:1,known:0,speed:.8,loop:'pp',path:[[-3.4,-9.2],[-1,-8.6],[2,-9.4],[3.4,-8.9]],name:'Unknown'}};
+const actors={};
+function spawn(n){const d=ACT[n];let a=actors[n];if(!a){const mesh=person(d.col,d.hood);scene.add(mesh);const ring=new THREE.Mesh(new THREE.RingGeometry(.36,.44,32),new THREE.MeshBasicMaterial({color:0x22d3ee,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false}));ring.rotation.x=-PI/2;overlay.add(ring);a=actors[n]={d,mesh,ring,ti:1,dir:1,x:0,z:0,yaw:0,moving:1,active:false,ph:Math.random()*6};}
+ a.active=true;a.ti=1;a.dir=1;a.x=d.path[0][0];a.z=d.path[0][1];a.moving=1;a.mesh.visible=true;a.ring.visible=true;}
+function despawnAll(){for(const k in actors){actors[k].active=false;actors[k].mesh.visible=false;actors[k].ring.visible=false;}}
+function stepActors(dt,t){for(const k in actors){const a=actors[k];if(!a.active)continue;const P=a.d.path,tg=P[a.ti],dx=tg[0]-a.x,dz=tg[1]-a.z,ds=Math.hypot(dx,dz),st=a.d.speed*dt;
+ if(ds<=st){a.x=tg[0];a.z=tg[1];if(a.d.loop==='loop')a.ti=(a.ti+1)%P.length;else if(a.d.loop==='pp'){if(a.ti+a.dir>=P.length||a.ti+a.dir<0)a.dir*=-1;a.ti+=a.dir;}else if(a.ti<P.length-1)a.ti++;else{a.moving=0;a.yaw=PI;}}
+ else{a.x+=dx/ds*st;a.z+=dz/ds*st;a.yaw=Math.atan2(dx,dz);a.moving=1;}
+ const by=(Math.abs(a.x)<9&&a.z>-6&&a.z<6)?0:GY,sw=a.moving?Math.sin(t*8+a.ph)*.5:0;
+ a.mesh.position.set(a.x,by+(a.moving?Math.abs(Math.sin(t*8+a.ph))*.03:0),a.z);a.mesh.rotation.y=a.yaw;a.mesh.userData.legs[0].rotation.x=sw;a.mesh.userData.legs[1].rotation.x=-sw;a.ring.position.set(a.x,by+.04,a.z);}}
+function inCone(s,x,z){const dx=x-s.pos.x,dz=z-s.pos.z,d=Math.hypot(dx,dz);return d<=s.range&&d>.05&&Math.abs(wrapPi(Math.atan2(dx,dz)-s.yaw))<=s.fov/2;}
+
+/* ============ lamps / door visuals ============ */
+function visualsUpdate(dt,t,now){
+ for(const k in LAMPS){const L=LAMPS[k];L.level+=(L.target-L.level)*(1-Math.exp(-dt*4));L.pl.intensity=L.level*1.15;L.bulb.material.color.setRGB(lerp(.23,1,L.level),lerp(.25,.86,L.level),lerp(.35,.6,L.level));L.gl.material.opacity=L.level*.75;}
+ const o=state.doorMain*1.45;gateL.rotation.y=o;gateR.rotation.y=-o;rollG.scale.y=1-state.garage*.85;
+ TVM.emissiveIntensity=lerp(TVM.emissiveIntensity,dec.tv?1.1:0,.1);AC.led.color.setHex(dec.ac?0x38bdf8:0x1e3a5f);
+ FAN.fanV=lerp(FAN.fanV||0,dec.fan?16:0,.05);FAN.blades.rotation.z+=FAN.fanV*dt;
+ BUZ.dome.material.emissiveIntensity=dec.buzzer?.4+.6*(Math.sin(now/90)>0?1:0):.15;
+ bzRings.forEach((r,i)=>{if(!dec.buzzer){r.material.opacity=0;return;}const k=((now/1000)*1.2+i*.5)%1;r.scale.setScalar(.4+k*2.2);r.material.opacity=.7*(1-k);});
+ relayLed[0].color.setHex(dec.lightsOn?0x22c55e:0x14532d);relayLed[1].color.setHex(dec.fan?0x22c55e:0x14532d);relayLed[2].color.setHex(dec.tv||dec.ac?0x22c55e:0x14532d);
+}
+
+/* ============ simulation state ============ */
+const BASE={gas:180,smoke:12,temp:26.4,hum:58,flame:false,doorMain:false};
+const state={gas:180,smoke:12,temp:26.4,hum:58,flame:false,flameIR:38,doorMain:0,garage:0};
+const target=Object.assign({},BASE);
+const START_CLOCK=22*3600+46*60;
+const sim={running:true,t:0,clock:START_CLOCK,scn:'normal',step:0};
+let dec={lvl:0,reasons:[],buzzer:false,fan:false,ac:false,tv:false,lightsOn:false,primary:'',conf:99,push:false};
+const SCEN=[
+ {id:'normal',name:'Normal Home',steps:[{t:0}]},
+ {id:'person',name:'Person Detected',steps:[{t:0,spawn:['resident']}]},
+ {id:'unknown',name:'Unknown Person at Entrance',steps:[{t:0,spawn:['intruder']}]},
+ {id:'gas',name:'Gas Leak in Kitchen',steps:[{t:0,set:{gas:440}}]},
+ {id:'smoke',name:'Smoke Detected',steps:[{t:0,set:{smoke:280}}]},
+ {id:'fire',name:'Fire Detected',steps:[{t:0,set:{smoke:150}},{t:1.5,set:{flame:true,smoke:340,temp:38}}]},
+ {id:'door',name:'Door Opened',steps:[{t:0,set:{doorMain:true}}]},
+ {id:'motion',name:'Motion Detected',steps:[{t:0,spawn:['prowler']}]},
+ {id:'temp',name:'High Temperature',steps:[{t:0,set:{temp:43,hum:32}}]},
+ {id:'multi',name:'Multiple Threats',steps:[{t:0,spawn:['intruder']},{t:3,set:{gas:440}},{t:6,set:{smoke:300}},{t:8,set:{temp:41,hum:36}},{t:9,spawn:['prowler']}]}];
+function fmt(sec){sec=Math.floor(sec)%86400;let h=Math.floor(sec/3600);const m=Math.floor(sec%3600/60),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(m).padStart(2,'0')+' '+ap;}
+const SEED=[['10:42 PM','Unknown Person','Front Door','crit'],['10:38 PM','Gas Leak Detected','Kitchen','danger'],['10:21 PM','Motion Detected','Backyard','warn'],['10:15 PM','Smoke Detected','Kitchen','danger']].map(a=>({t:a[0],title:a[1],where:a[2],sev:a[3],hist:true}));
+let alerts=SEED.slice(),seen={},toastT=0,pushUntil=0,wasHigh=false;
+function addAlert(title,where,sev){alerts.unshift({t:fmt(sim.clock),title,where,sev,hist:false});if(alerts.length>24)alerts.pop();
+ if(sev!=='info'&&sev!=='ok'){const t=$('toast');t.innerHTML='<b>MOBILE ALERT SENT</b>'+title+' – '+where;t.style.display='block';toastT=performance.now()+4200;pushUntil=performance.now()+4200;}renderAlerts();}
+function edge(key,cond,title,where,sev){if(cond&&!seen[key]){seen[key]=true;addAlert(title,where,sev);}else if(!cond)seen[key]=false;}
+function setScenario(id,keep){const sc=SCEN.find(s=>s.id===id);sim.scn=id;Object.assign(target,BASE);despawnAll();sim.t=0;sim.step=0;if(!keep){sim.running=true;}
+ $('scnNow').textContent='Scenario: '+sc.name;document.querySelectorAll('.sc').forEach(b=>b.classList.toggle('on',b.dataset.id===id));syncSim();}
+function stepScenario(){const sc=SCEN.find(s=>s.id===sim.scn);while(sim.step<sc.steps.length&&sc.steps[sim.step].t<=sim.t){const st=sc.steps[sim.step++];if(st.set)Object.assign(target,st.set);if(st.spawn)st.spawn.forEach(spawn);}}
+function updateEnv(dt){const t=sim.t;
+ state.gas=approach(state.gas,target.gas+Math.sin(t*1.7)*3,(target.gas>state.gas?70:40)*dt);
+ state.smoke=approach(state.smoke,target.smoke+Math.sin(t*2.3)*1.5,(target.smoke>state.smoke?55:22)*dt);
+ state.temp=approach(state.temp,target.temp+Math.sin(t*.7)*.08,(target.temp>state.temp?1.3:.7)*dt);
+ state.hum=approach(state.hum,target.hum+Math.sin(t*.9)*.4,1.2*dt);
+ state.flame=target.flame;state.flameIR=approach(state.flameIR,target.flame?880:40+Math.sin(t)*4,600*dt);
+ state.doorMain=approach(state.doorMain,target.doorMain?1:0,dt*1.1);}
+
+/* ============ sensing + fusion ============ */
+function updateSensors(){const act=[];for(const k in actors)if(actors[k].active)act.push(actors[k]);
+ for(const s of SENS){let st='ok',val='';
+  switch(s.kind){
+   case 'cam':{const sn=act.filter(a=>inCone(s,a.x,a.z));s.person=sn.length;s.unknown=sn.some(a=>!a.d.known);s.known=sn.some(a=>a.d.known);s.seen=sn[0]||null;
+    if(!sn.length){val='CLEAR';}else if(s.known&&!s.unknown){st='active';val='PERSON · KNOWN';}else{st=s.perim==='high'?'crit':'warn';val='PERSON · UNKNOWN';}break;}
+   case 'pir':{const sn=act.filter(a=>inCone(s,a.x,a.z));s.det=sn.length>0;const u=sn.some(a=>!a.d.known);st=!s.det?'ok':u?(s.out?'danger':'warn'):'active';val=s.det?'HUMAN DETECTED':'NO MOTION';break;}
+   case 'door':{s.open=s.id==='DOOR-01'&&state.doorMain>.5;st=s.open?'warn':'ok';val=s.open?'OPEN':'CLOSED';if(s.mag)s.mag.position.x=s.dir*(.14+(s.id==='DOOR-01'?state.doorMain*.3:0));break;}
+   case 'gas':st=state.gas>=T.gas.crit?'crit':state.gas>=T.gas.warn?'warn':'ok';val=Math.round(state.gas)+' ppm';break;
+   case 'smoke':st=state.smoke>=T.smoke.crit?'crit':state.smoke>=T.smoke.warn?'warn':'ok';val=Math.round(state.smoke)+' ppm';break;
+   case 'flame':st=state.flame?'crit':'ok';val=state.flame?'FLAME DETECTED':'NO FLAME';break;
+   case 'dht':st=state.temp>=T.temp.crit?'crit':state.temp>=T.temp.warn?'warn':'ok';val=state.temp.toFixed(1)+'°C · '+Math.round(state.hum)+'%';break;}
+  if(st!==s.st){s.st=st;s.last=fmt(sim.clock)+' – '+(st==='ok'?'returned to NORMAL':'status → '+STN[st])+' ('+val+')';}s.val=val;}}
+function evaluate(){const s=state,R=[];let lvl=0,prim='',pl=-1;const cats=new Set();
+ const add=(l,txt,p,c)=>{R.push([l,txt]);if(l>lvl)lvl=l;if(p&&l>pl){pl=l;prim=p;}if(l>=2&&c)cats.add(c);};
+ const gC=s.gas>=T.gas.crit,gW=s.gas>=T.gas.warn,sC=s.smoke>=T.smoke.crit,sW=s.smoke>=T.smoke.warn,tW=s.temp>=T.temp.warn,tC=s.temp>=T.temp.crit,fl=s.flame;
+ const cams=SENS.filter(x=>x.kind==='cam'),uF=cams.find(c=>c.person&&c.unknown&&c.perim==='high'),uB=cams.find(c=>c.person&&c.unknown&&c.perim!=='high'),kn=cams.find(c=>c.person&&c.known&&!c.unknown),dO=s.doorMain>.5;
+ if(fl&&(sW||tW))add(3,'Flame IR + smoke/heat agree → fire confirmed (97%)','FIRE DETECTED – KITCHEN','fire');else if(fl)add(2,'Flame IR triggered; waiting for smoke / thermal confirmation','FLAME DETECTED – KITCHEN','fire');
+ if(gC&&(fl||sW))add(3,'Gas above threshold with ignition source → explosion risk','GAS + FIRE RISK – KITCHEN','gas');else if(gC)add(2,'MQ-2 '+Math.round(s.gas)+' ppm > '+T.gas.crit+' ppm threshold → gas leak','GAS LEAK – KITCHEN','gas');else if(gW)add(1,'Gas rising ('+Math.round(s.gas)+' ppm), approaching threshold','GAS LEVEL RISING – KITCHEN','gas');
+ if(sC&&!fl)add(2,'Smoke '+Math.round(s.smoke)+' ppm; no flame, heat stable → smouldering/cooking, verifying','SMOKE DETECTED – KITCHEN','smoke');else if(sW&&!fl)add(1,'Smoke rising; no flame, heat normal → likely cooking (false-alarm filter)','SMOKE RISING – KITCHEN','smoke');
+ if(tC)add(2,'DHT22 '+s.temp.toFixed(1)+'°C above critical limit','CRITICAL TEMPERATURE – LIVING ROOM','temp');else if(tW&&!fl)add(1,'DHT22 '+s.temp.toFixed(1)+'°C, humidity '+Math.round(s.hum)+'% → high temperature','HIGH TEMPERATURE – LIVING ROOM','temp');
+ if(uF)add(dO?3:2,dO?'Unknown face + door opened → intrusion in progress':'Camera + PIR agree: person present, face not in known list','UNKNOWN PERSON DETECTED – '+uF.room.toUpperCase(),'intruder');else if(uB)add(1,'CAM-04: person in backyard, unverified → motion alert','MOTION DETECTED – BACKYARD','back');
+ if(dO&&!uF)add(1,'Main door opened while system is armed (night mode)','DOOR OPENED – MAIN ENTRANCE','door');
+ if(kn&&!uF)add(0,'Face match: known resident → no alarm, comfort automation only','','');
+ if(cats.size>=2&&lvl<3){add(3,'Several independent high threats → escalate to CRITICAL','MULTIPLE THREATS – WHOLE HOME','');}
+ if(cats.size>=2&&lvl===3&&prim.indexOf('MULTIPLE')<0)prim='MULTIPLE THREATS – WHOLE HOME';
+ const evac=lvl>=3||gC||fl,res=actors.resident&&actors.resident.active&&actors.resident.x>-4.5&&actors.resident.x<4.5&&actors.resident.z>-1,front=uF||uB||dO;
+ const d={lvl,reasons:R,primary:prim,conf:lvl?clamp(62+lvl*10+R.length*3,0,99):99,buzzer:lvl>=2||gC||fl,fan:gW||sW,ac:s.temp>=32,tv:!!res,evac,resident:!!kn,uF,uB,gC,gW,sW,sC,tW,fl};
+ LAMPS.living.target=evac||res||uF?1:.35;LAMPS.kitchen.target=evac||gW||sW||fl?1:0;LAMPS.entrance.target=front||evac?1:.25;LAMPS.garage.target=evac?1:0;
+ LAMPS.bed1.target=evac?1:0;LAMPS.bed2.target=evac?1:0;LAMPS.bath.target=evac?1:0;LAMPS.back.target=uB||evac?1:0;
+ d.lightsOn=evac||res||front||uB;
+ edge('known',!!kn&&!uF,'Person Detected',(kn?kn.room:'')+' · Resident','info');
+ cams.forEach(c=>edge('unk'+c.id,c.person&&c.unknown,c.perim==='high'?'Unknown Person':'Motion Detected',c.room,c.perim==='high'?'crit':'warn'));
+ edge('door',dO,'Door Opened','Main Entrance','warn');edge('gW',gW,'Gas Level Rising','Kitchen','warn');edge('gC',gC,'Gas Leak Detected','Kitchen','crit');
+ edge('sW',sW,'Smoke Detected','Kitchen','warn');edge('sC',sC,'Smoke Level Critical','Kitchen','danger');edge('fl',fl,'FIRE – Flame Detected','Kitchen','crit');
+ edge('tW',tW,'High Temperature','Living Room','warn');edge('tC',tC,'Critical Temperature','Living Room','crit');edge('multi',cats.size>=2,'Multiple Threats','Whole Home','crit');
+ if(lvl>=1)wasHigh=true;else if(wasHigh){wasHigh=false;addAlert('All Clear','System back to normal','ok');}
+ dec=d;}
+function updateDevices(){const on=(s,v,txt)=>{const p=!!s.on;s.on=v;if(p!==v&&sim.t>0)s.last=fmt(sim.clock)+' – turned '+(v?'ON':'OFF')+(txt?' ('+txt+')':'');};
+ on(BUZ,dec.buzzer,'threat '+LVN[dec.lvl]);BUZ.st=dec.buzzer?'crit':'off';BUZ.val=dec.buzzer?'ALARM ON':'OFF';
+ on(FAN,dec.fan,'gas/smoke');FAN.st=dec.fan?'active':'off';FAN.val=dec.fan?'ON':'OFF';
+ on(AC,dec.ac,'temp ≥ 32°C');AC.st=dec.ac?'active':'off';AC.val=dec.ac?'COOLING':'OFF';
+ on(TVD,dec.tv,'resident present');TVD.st=dec.tv?'active':'off';TVD.val=dec.tv?'ON':'OFF';
+ ESP.st='ok';ESP.val='CONNECTED';OLED.st='active';OLED.val='THREAT '+LVN[dec.lvl];RLY.st=dec.lightsOn||dec.fan||dec.tv||dec.ac?'active':'off';RLY.val=(dec.lightsOn?'1':'-')+(dec.fan?'2':'-')+(dec.tv||dec.ac?'3':'-');
+ ACTS.forEach(a=>{if(a.L===undefined&&a.id.indexOf('LIGHT')===0){a.L=LAMPS[({'LIGHT-01':'living','LIGHT-02':'kitchen','LIGHT-03':'entrance','LIGHT-04':'garage'})[a.id]];}
+  if(a.L){const v=a.L.target>.5;on(a,v,'occupancy/threat');a.st=v?'active':'off';a.val=v?'ON':(a.L.target>0?'DIM':'OFF');}});}
+function drawOLED(){const g=oledC.getContext('2d');g.fillStyle='#02070c';g.fillRect(0,0,256,128);g.fillStyle='#7dd3fc';g.font='bold 15px monospace';g.fillText('SENTINELAI  '+fmt(sim.clock),8,18);
+ g.fillStyle=dec.lvl>=2?'#f87171':dec.lvl?'#facc15':'#4ade80';g.font='bold 24px monospace';g.fillText('THREAT '+LVN[dec.lvl],8,50);
+ g.fillStyle='#7dd3fc';g.font='14px monospace';g.fillText('GAS '+Math.round(state.gas)+'  SMK '+Math.round(state.smoke),8,76);g.fillText('T '+state.temp.toFixed(1)+'C  H '+Math.round(state.hum)+'%',8,96);g.fillText((dec.buzzer?'BUZ ':'')+(dec.fan?'FAN ':'')+(dec.tv||dec.ac?'APL ':'')+(dec.lightsOn?'LGT':''),8,118);oledT.needsUpdate=true;}
+
+/* ============ rooms: signals + access ============ */
+let curRoom=null,hoverRoom=null;
+const ROOMS=[
+ {k:'bed1',n:'Bedroom 1',x0:-9,z0:-6,x1:-3,z1:-1},{k:'bath',n:'Bathroom',x0:-3,z0:-6,x1:3,z1:-1},{k:'bed2',n:'Bedroom 2',x0:3,z0:-6,x1:9,z1:-1},
+ {k:'kitchen',n:'Kitchen',x0:-9,z0:-1,x1:-4.5,z1:6},{k:'living',n:'Living Room',x0:-4.5,z0:-1,x1:4.5,z1:6},{k:'garage',n:'Garage',x0:4.5,z0:-1,x1:9,z1:6},
+ {k:'entrance',n:'Main Entrance',x0:-4,z0:6,x1:4,z1:10.3},{k:'back',n:'Backyard',x0:-8,z0:-10.8,x1:8,z1:-6.2}];
+const ROOMBY={},roomPick=[],RK={ok:0,off:0,active:1,warn:2,danger:3,crit:4};
+ROOMS.forEach(r=>{r.cx=(r.x0+r.x1)/2;r.cz=(r.z0+r.z1)/2;r.w=r.x1-r.x0;r.d=r.z1-r.z0;r.st='ok';r.sig=[];ROOMBY[r.k]=r;
+ const y=(r.k==='entrance'||r.k==='back')?GY+.04:.02;
+ const pl=new THREE.Mesh(new THREE.PlaneGeometry(r.w-.2,r.d-.2),new THREE.MeshBasicMaterial({color:0x22d3ee,transparent:true,opacity:0,depthWrite:false}));pl.rotation.x=-PI/2;pl.position.set(r.cx,y,r.cz);pl.userData.room=r;overlay.add(pl);r.plane=pl;roomPick.push(pl);
+ const a=r.x0+.12,b=r.x1-.12,c=r.z0+.12,d=r.z1-.12;
+ r.line=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a,y+.02,c),new THREE.Vector3(b,y+.02,c),new THREE.Vector3(b,y+.02,d),new THREE.Vector3(a,y+.02,d)]),new THREE.LineBasicMaterial({color:0x22d3ee,transparent:true,opacity:.9}));r.line.visible=false;overlay.add(r.line);
+ const bc=new THREE.Mesh(new THREE.RingGeometry(.5,.62,48),new THREE.MeshBasicMaterial({color:0xfacc15,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));bc.rotation.x=-PI/2;bc.position.set(r.cx,y+.03,r.cz);bc.visible=false;overlay.add(bc);r.beacon=bc;
+ const pin=document.createElement('div');pin.className='rpin';pin.addEventListener('click',()=>selectRoom(r.k));$('pins').appendChild(pin);r.pin=pin;});
+$('rooms').innerHTML='<button class="rc on" data-k="">All rooms</button>'+ROOMS.map(r=>'<button class="rc" data-k="'+r.k+'" id="rc_'+r.k+'"><i id="rd_'+r.k+'"></i>'+r.n+'<em>'+SENS.filter(s=>s.rk===r.k).length+'</em></button>').join('');
+$('rooms').onclick=e=>{const b=e.target.closest('.rc');if(b)selectRoom(b.dataset.k||null);};
+function signalText(s){switch(s.kind){case 'gas':return s.st==='crit'?'GAS LEAK':'GAS RISING';case 'smoke':return s.st==='crit'?'SMOKE HIGH':'SMOKE RISING';case 'flame':return 'FLAME / FIRE';case 'dht':return s.st==='crit'?'CRITICAL TEMPERATURE':'HIGH TEMPERATURE';
+ case 'cam':return s.known&&!s.unknown?'RESIDENT SEEN':(s.perim==='high'?'UNKNOWN PERSON':'MOTION – UNVERIFIED');case 'pir':return s.st==='active'?'RESIDENT MOTION':'MOTION DETECTED';case 'door':return 'DOOR OPEN';}return s.st.toUpperCase();}
+function updateRooms(){ROOMS.forEach(r=>{r.st='ok';r.sig=[];});
+ SENS.forEach(s=>{const r=ROOMBY[s.rk];if(!r||s.st==='ok')return;r.sig.push({s,txt:signalText(s)});if(RK[s.st]>RK[r.st])r.st=s.st;});
+ ROOMS.forEach(r=>r.sig.sort((a,b)=>RK[b.s.st]-RK[a.s.st]));}
+function roomsUI(){ROOMS.forEach(r=>{const c=r.st==='ok'?'#22c55e':SC[r.st],d=$('rd_'+r.k);d.style.background=c;d.style.color=c;$('rc_'+r.k).classList.toggle('alert',RK[r.st]>=2);
+ const p=r.pin;if(RK[r.st]>=1&&r.sig.length){const top=r.sig[0],more=r.sig.length-1;p.style.display='block';p.style.setProperty('--pc',SC[r.st]);p.innerHTML=(RK[r.st]>=2?'⚠ ':'● ')+top.txt+'<small>'+r.n+(more>0?' · +'+more+' more signals':'')+'</small>';}else p.style.display='none';});}
+function roomVisuals(t){ROOMS.forEach(r=>{const a=RK[r.st],col=a?SH(r.st):0x22d3ee,sel=curRoom===r.k,hv=hoverRoom===r,pu=.5+.5*Math.sin(t*(a>=3?6:3));
+ r.plane.material.color.setHex(col);r.plane.material.opacity=a>=2?.12+.18*pu*(a-1)/3:a===1?.1:(sel?.1:hv?.07:0);
+ r.line.visible=sel||hv||a>=2;r.line.material.color.setHex(sel?0x22d3ee:col);
+ r.beacon.visible=a>=2;if(a>=2){const k=(t*(a>=3?1.2:.7))%1;r.beacon.scale.setScalar(1+k*Math.min(r.w,r.d)*.5);r.beacon.material.opacity=.75*(1-k);r.beacon.material.color.setHex(col);}});}
+function pinsLayout(){const t=performance.now()/500;ROOMS.forEach(r=>{if(RK[r.st]<1||!r.sig.length)return;pv.set(r.cx,2.5+Math.sin(t+r.cx)*.08,r.cz).project(camera);
+ r.pin.style.transform='translate('+((pv.x*.5+.5)*vpW).toFixed(1)+'px,'+((-pv.y*.5+.5)*vpH).toFixed(1)+'px) translate(-50%,-100%)';r.pin.style.opacity=pv.z<1?1:0;});}
+function focusRoom(r){userMoved=true;G.el=55*D2R;G.az=V.az+wrapPi(-V.az);G.dist=V.ref*clamp(Math.max(r.w/19.6,r.d/15.6)*1.3,.5,1);G.tx=r.cx;G.tz=r.cz;}
+function selectRoom(k){curRoom=k;select(null);document.querySelectorAll('#rooms .rc').forEach(b=>b.classList.toggle('on',(b.dataset.k||null)===curRoom));
+ if(k)focusRoom(ROOMBY[k]);else{setView('home');}
+ if(k){const rc=document.querySelector('.right');if(rc&&rc.scrollTo)rc.scrollTo({top:0,behavior:'smooth'});}}
+function roomPanel(){const r=ROOMBY[curRoom];if(!r)return;const st=r.st==='ok'?'SAFE':(r.st==='active'?'OCCUPIED':STN[r.st]),cc=r.st==='ok'?'ok':r.st;
+ const sens=SENS.filter(s=>s.rk===r.k),devs=ACTS.filter(a=>a.rk===r.k);
+ const row=s=>'<div class="rmrow" data-id="'+s.id+'"><div><b>'+s.id+' · '+s.label+'</b><span>'+((infoFor(s)||{}).short||'')+'</span></div><div class="v c-'+s.st+'">'+(s.val||'–')+'</div></div>';
+ const al=alerts.filter(a=>roomKey(a.where)===r.k).slice(0,4);
+ const h='<div class="hd"><strong>'+r.n+'</strong><span class="chip c-'+cc+'">'+st+'</span></div>'+
+  (r.sig.length?'<div class="about"><b>Signals in this room</b><dl>'+r.sig.map(x=>'<dd>'+x.s.id+' – '+x.txt+' ('+x.s.val+')</dd>').join('')+'</dl></div>':'<div class="about"><b>All clear</b><p>No sensor in this room is triggered.</p></div>')+
+  '<div class="sub" style="margin:4px 0">SENSORS ('+sens.length+') · click one for details</div>'+sens.map(row).join('')+
+  (devs.length?'<div class="sub" style="margin:8px 0 4px">DEVICES</div>'+devs.map(row).join(''):'')+
+  (al.length?'<div class="sub" style="margin:8px 0 4px">ROOM ALERTS</div>'+al.map(a=>'<div class="rmrow"><div><b>'+a.title+'</b><span>'+a.t+'</span></div></div>').join(''):'');
+ const el=$('detBody');el.className='';if(el.__h!==h){el.__h=h;el.innerHTML=h;}$('spark').style.display='none';
+ const cl=$('call');cl.style.display='block';cl.innerHTML='<b>'+r.n+' <span class="chip c-'+cc+'">'+st+'</span></b><p>'+(r.sig.length?r.sig[0].txt+(r.sig.length>1?' (+'+(r.sig.length-1)+' more)':''):'All '+sens.length+' sensors normal.')+'</p><em>Room view · click a sensor for details</em>';}
+$('detBody').addEventListener('pointerdown',e=>{const bk=e.target.closest('[data-back]');if(bk){selectRoom(bk.dataset.back);return;}const b=e.target.closest('.rmrow');if(!b||!b.dataset.id)return;const s=ALL.find(x=>x.id===b.dataset.id);if(s)select(s);});
+function pickRoomAt(cx,cy){const r=canvas.getBoundingClientRect();ndc.set((cx-r.left)/r.width*2-1,-((cy-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);const h=ray.intersectObjects(roomPick,false);return h.length?h[0].object.userData.room:null;}
+
+/* ============ UI: legend, scenarios, architecture ============ */
+let actLab=false,legendKind=null,labelsOn=true,connOn=true,fovOn=true,sndOn=false,selected=null,hovered=null,detS=null;
+const HIST={gas:[],smoke:[],temp:[]};
+$('scnList').innerHTML=SCEN.map((s,i)=>'<button class="sc'+(i?'':' on')+'" data-id="'+s.id+'"><span class="n">'+(i+1)+'</span>'+s.name+'</button>').join('');
+$('legend').innerHTML=Object.keys(KINDS).map(k=>'<button class="lg" data-k="'+k+'"><i style="background:'+KINDS[k].col+';color:'+KINDS[k].col+'"></i>'+KINDS[k].name+'<em>'+SENS.filter(s=>s.kind===k).length+'</em></button>').join('');
+const NODES=[['Sensors + cameras','in'],['ESP32 edge controller','esp'],['AI processing','ai'],['Multimodal sensor fusion','fus'],['Decision engine','dcs'],['Action','act'],['Buzzer · lights · fan · appliances','dev'],['Dashboard + mobile alert','out']];
+$('flow').innerHTML=NODES.map((n,i)=>(i?'<div class="ar"></div>':'')+'<button class="nd" data-n="'+n[1]+'" id="n_'+n[1]+'"><div class="k">'+(i+1)+'</div><div class="t">'+n[0]+'</div><div class="s" id="s_'+n[1]+'"></div></button>').join('');
+function pulse(list,ms){const t=performance.now()+(ms||2600);list.forEach(s=>s.pulseUntil=t);}
+$('flow').addEventListener('click',e=>{const b=e.target.closest('.nd');if(!b)return;const n=b.dataset.n;
+ if(n==='in'||n==='fus')pulse(n==='in'?SENS:SENS.filter(s=>s.st!=='ok'&&s.st!=='off'));else if(n==='ai')pulse(SENS.filter(s=>s.kind==='cam'));else if(n==='esp'||n==='dcs')select(ESP);else if(n==='act'||n==='dev')pulse(ACTS);else if(n==='out'){select(OLED);$('alerts').scrollIntoView({block:'nearest',behavior:'smooth'});}});
+function archUpdate(){const on=SENS.filter(s=>s.st!=='ok').length,cams=SENS.filter(s=>s.kind==='cam'),ppl=cams.reduce((a,c)=>a+(c.person||0),0),act=ACTS.filter(a=>a.on).length;
+ $('s_in').textContent=SENS.length+' online · '+on+' triggered';$('s_esp').textContent='Wi-Fi · '+(sim.running?Math.round(22+Math.random()*6):0)+' pkt/s';
+ $('s_ai').textContent='Persons '+ppl+' · face '+(cams.some(c=>c.person&&c.unknown)?'UNKNOWN':cams.some(c=>c.person)?'KNOWN':'–');
+ $('s_fus').textContent='Confidence '+dec.conf+'% · '+dec.reasons.length+' cues';$('s_dcs').textContent='Threat: '+LVN[dec.lvl];$('s_act').textContent=act+' actuators active';
+ $('s_dev').innerHTML='<div class="dots"><u class="'+(dec.buzzer?'on':'')+'">BUZ</u><u class="'+(dec.lightsOn?'on':'')+'">LGT</u><u class="'+(dec.fan?'on':'')+'">FAN</u><u class="'+(dec.tv||dec.ac?'on':'')+'">APL</u></div>';
+ $('s_out').textContent=alerts.filter(a=>!a.hist).length+' new alerts · push '+(performance.now()<pushUntil?'SENT':'idle');
+ ['in','esp','ai','fus','dcs','act','dev','out'].forEach(k=>{const el=$('n_'+k);const hot=(k==='dcs'||k==='act'||k==='dev')&&dec.lvl>=2;el.classList.toggle('hot',hot);el.classList.toggle('on',!hot&&((k==='ai'&&ppl>0)||(k==='fus'&&dec.lvl>0)||(k==='out'&&performance.now()<pushUntil)||(k==='in'&&on>0)||(k==='dev'&&act>0)));});}
+function renderAlerts(){$('alerts').innerHTML=alerts.slice(0,9).map(a=>'<li class="'+(a.hist?'hist':'')+'"><i style="background:'+(SC[a.sev]||'#22d3ee')+'"></i><div><b>'+a.t+(a.hist?' · resolved':'')+'</b><span>'+a.title+'</span><em>'+a.where+'</em></div></li>').join('');}
+$('live').innerHTML=['Temperature','Humidity','Gas level','Smoke level','Motion','Door status','Flame status'].map((n,i)=>'<div class="lv"'+(i===6?' style="grid-column:span 2"':'')+'><span>'+n+'</span><b id="lv'+i+'">–</b></div>').join('');
+function dashUpdate(){
+ const c=(k,v,st)=>{const e=$('lv'+k);e.textContent=v;e.style.color=SC[st]||'';};
+ const ts=SENS.find(s=>s.kind==='dht').st,pirs=SENS.filter(s=>s.kind==='pir'&&s.det).map(s=>s.room),camM=SENS.filter(s=>s.kind==='cam'&&s.person).map(s=>s.room);
+ c(0,state.temp.toFixed(1)+' °C',ts);c(1,Math.round(state.hum)+' %',state.temp>=T.temp.warn?'warn':'ok');c(2,Math.round(state.gas)+' ppm',SENS.find(s=>s.kind==='gas').st);c(3,Math.round(state.smoke)+' ppm',SENS.find(s=>s.kind==='smoke').st);
+ const mo=pirs.concat(camM.filter(r=>pirs.indexOf(r)<0));c(4,mo.length?mo.join(', '):'NONE',mo.length?(dec.lvl>=2?'danger':'active'):'ok');
+ c(5,state.doorMain>.5?'MAIN DOOR OPEN':'ALL CLOSED',state.doorMain>.5?'warn':'ok');c(6,state.flame?'FLAME DETECTED':'NO FLAME',state.flame?'crit':'ok');
+ $('thL').textContent=LVN[dec.lvl];$('thL').style.color=SC[LVC[dec.lvl]];$('thP').style.left=((dec.lvl+.5)*25)+'%';$('thC').textContent='Fusion confidence '+dec.conf+'%';
+ $('why').innerHTML=dec.reasons.length?dec.reasons.slice(0,4).map(r=>'<li>'+r[1]+'</li>').join(''):'<li>All sensors within limits, no unknown persons.</li>';
+ const b=$('banner');if(dec.lvl>=1&&dec.primary){b.style.display='block';const col=SC[LVC[dec.lvl]];b.style.color=col;b.style.borderColor=col;b.style.background='rgba(8,10,26,.9)';b.textContent=(dec.lvl>=2?'⚠ ':'')+dec.primary;}else b.style.display='none';
+ $('clock').textContent=fmt(sim.clock);if(hovered)tip.textContent=hovered.id+' · '+hovered.label+' · '+(hovered.val||'–');roomsUI();archUpdate();const cm=SENS.filter(s=>s.kind==='cam').length;$('sCam').textContent=cm+'/'+cm+' ONLINE';$('sSen').textContent=(SENS.length-cm)+'/'+(SENS.length-cm)+' ONLINE';
+ if(toastT&&performance.now()>toastT){$('toast').style.display='none';toastT=0;}
+ updateDetails();}
+function syncSim(){$('bStart').classList.toggle('on',sim.running);$('bPause').classList.toggle('on',!sim.running);$('simPill').classList.toggle('paused',!sim.running);$('simTxt').textContent=sim.running?'Simulation running':'Simulation paused';$('app').classList.toggle('paused',!sim.running);}
+$('bStart').onclick=()=>{sim.running=true;syncSim();};$('bPause').onclick=()=>{sim.running=false;syncSim();};
+$('bReset').onclick=()=>{setScenario('normal',true);Object.assign(state,{gas:180,smoke:12,temp:26.4,hum:58,flame:false,flameIR:38,doorMain:0});alerts=SEED.slice();seen={};sim.clock=START_CLOCK;wasHigh=false;$('toast').style.display='none';renderAlerts();syncSim();};
+$('scnList').onclick=e=>{const b=e.target.closest('.sc');if(b)setScenario(b.dataset.id);};
+$('legend').onclick=e=>{const b=e.target.closest('.lg');if(!b)return;legendKind=legendKind===b.dataset.k?null:b.dataset.k;document.querySelectorAll('.lg').forEach(x=>x.classList.toggle('on',x.dataset.k===legendKind));};
+$('tAll').onclick=()=>{legendKind=null;document.querySelectorAll('.lg').forEach(x=>x.classList.remove('on'));labelsOn=true;$('tLab').textContent='Hide labels';$('tLab').classList.add('on');const t=performance.now();SENS.forEach((s,i)=>s.pulseUntil=t+1500+i*90);};
+$('tLab').onclick=e=>{labelsOn=!labelsOn;e.target.textContent=labelsOn?'Hide labels':'Show labels';e.target.classList.toggle('on',labelsOn);};
+$('tAct').onclick=e=>{actLab=!actLab;e.target.classList.toggle('on',actLab);};
+$('tCon').onclick=e=>{connOn=!connOn;e.target.classList.toggle('on',connOn);};
+$('tFov').onclick=e=>{fovOn=!fovOn;e.target.classList.toggle('on',fovOn);};
+$('tSnd').onclick=e=>{sndOn=!sndOn;e.target.textContent='Sound: '+(sndOn?'on':'off');e.target.classList.toggle('on',sndOn);};
+let actx=null,lastBeep=0;function beep(now){if(!sndOn||!dec.buzzer||!sim.running||now-lastBeep<450)return;lastBeep=now;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.type='square';o.frequency.value=(Math.floor(now/450)%2)?880:660;g.gain.value=.03;o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+.2);}catch(e){}}
+
+/* ---- details panel ---- */
+const INFO={
+cam:{n:"AI camera",short:"Watches an area and uses AI to find people, recognise faces and spot motion.",what:"A Wi-Fi camera whose video is analysed by an AI model on the local unit (laptop / edge server), not just recorded.",how:"Frames stream to the AI processing unit, which returns person, face (known / unknown) and motion results. The ESP32 combines them with the other sensors.",when:"An unknown face or movement appears inside its field of view (the cyan cone on the floor)."},
+pir:{n:"PIR motion sensor",short:"Detects people moving by sensing the infrared heat their bodies give off.",what:"PIR means passive infrared. It sends nothing out; it only watches for changes in heat.",how:"A lens splits the room into zones. When a warm body crosses from one zone to the next, the sensor output goes HIGH and the ESP32 reads it on a GPIO pin.",when:"Movement happens inside its detection cone (5 to 7 m). An unknown person outdoors, or motion in a room that should be empty, raises the threat level."},
+door:{n:"Door / IR sensor",short:"Tells whether a door is open or closed.",what:"Two parts: a magnet on the door and a magnetic reed switch on the frame, plus an IR beam as a second check.",how:"While the door is closed the magnet keeps the reed switch closed. Opening the door moves the magnet away, the circuit opens, and the ESP32 sees the change.",when:"The door opens while the system is armed (night mode). Combined with an unknown face it becomes an intrusion."},
+gas:{n:"MQ-2 gas sensor",short:"Detects flammable gas (LPG, methane, propane) and smoke in the air.",what:"The MQ-2 is a low-cost chemical gas sensor with a heated tin-dioxide element.",how:"Gas molecules change the electrical resistance of the element. The ESP32 reads the analog voltage (ADC) and converts it to ppm.",when:"Above 240 ppm is a warning; above 300 ppm is a leak. The exhaust fan and buzzer switch on and the lights turn on for evacuation."},
+flame:{n:"Flame sensor",short:"Detects the infrared light given off by an open flame.",what:"An infrared (IR) flame sensor looks for the 760 to 1100 nm light that fire emits. It reacts faster than a smoke sensor because it sees the flame itself.",how:"An IR photodiode feeds a comparator that gives flame / no flame on a digital pin, while an analog pin gives the IR intensity.",when:"A flame is seen. If smoke or heat also rises, the fusion engine confirms FIRE and raises CRITICAL; a flame alone stays HIGH until confirmed."},
+smoke:{n:"Smoke sensor",short:"Detects smoke particles from smouldering or burning material.",what:"Senses the tiny airborne particles produced before and during a fire.",how:"Smoke changes the reading of the sensing element; the ESP32 reads it as an analog level (ppm equivalent).",when:"Above 100 ppm is a warning; above 200 ppm is critical. With no flame and normal heat the engine treats it as likely cooking and verifies before a full alarm."},
+dht:{n:"DHT22 temperature and humidity sensor",short:"Measures room temperature and humidity.",what:"A digital sensor accurate to about 0.5 °C and 2 to 5 % relative humidity.",how:"A thermistor measures temperature and a capacitive element measures humidity; a chip sends both as one digital signal on a single wire.",when:"35 °C is a warning and 45 °C is critical. At 32 °C the smart AC switches on. A fast rise together with smoke supports fire detection."},
+esp:{n:"ESP32 edge controller",short:"The small computer that reads every sensor and controls every device.",what:"A dual-core Wi-Fi and Bluetooth microcontroller acting as the brain at the edge of the home.",how:"It reads sensors on its GPIO pins, sends data to the AI unit over Wi-Fi / MQTT, and switches the relays, buzzer and display based on decisions.",when:"Always on. Basic safety rules (gas, flame) keep working even if the AI unit is offline."},
+oled:{n:"OLED display",short:"Small screen showing the current threat level and readings.",what:"A 0.96 inch I²C OLED that shows status without needing a phone.",how:"The ESP32 sends text over two wires (SDA and SCL).",when:"Updates continuously with the threat level, gas, smoke, temperature and active devices."},
+relay:{n:"Relay modules",short:"Switches the ESP32 uses to power lights, the fan and appliances.",what:"A relay lets a tiny 3.3 V signal safely switch mains-powered devices.",how:"When the ESP32 sets a pin HIGH, the relay coil closes its contact and the device turns on.",when:"RLY-01 lights, RLY-02 exhaust fan, RLY-03 appliances (TV / AC)."},
+buz:{n:"Buzzer / alarm",short:"Loud alarm that sounds when the home is in danger.",what:"A piezo buzzer / siren at the main entrance so both intruders and residents hear it.",how:"The ESP32 drives it from a GPIO pin; a pulsing pattern makes it more noticeable.",when:"Threat is HIGH or CRITICAL, a gas leak is confirmed, or a flame is detected."},
+fan:{n:"Exhaust fan",short:"Removes gas and smoke from the kitchen.",what:"A kitchen wall fan switched by a relay.",how:"RLY-02 powers the fan when the ESP32 decides the air is unsafe.",when:"Gas is 240 ppm or more, or smoke is 100 ppm or more."},
+light:{n:"Smart light",short:"A lamp the system turns on automatically based on people and threats.",what:"A relay-controlled, context-aware light.",how:"The decision engine sets each room: on where a resident is, on outdoors for an unknown person, all on during a fire or gas evacuation.",when:"Presence in the room, an unknown person outside, or an emergency."},
+tv:{n:"Smart TV",short:"An appliance the system switches on for a known resident.",what:"An example of context-aware automation.",how:"When a known resident is in the living room the ESP32 switches the appliance relay on.",when:"A known face is detected in the living room; it switches off when they leave."},
+ac:{n:"Smart AC",short:"Cools the home when it gets too hot.",what:"A relay-controlled air conditioner.",how:"The ESP32 reads the DHT22 and switches the AC on above 32 °C.",when:"Temperature is 32 °C or higher."}};
+function infoFor(s){if(!s.isAct)return INFO[s.kind];const k=s.id.indexOf('LIGHT')===0?'light':({'ESP32-01':'esp','OLED-01':'oled','RLY-01/02/03':'relay','BUZ-01':'buz','FAN-01':'fan','AC-01':'ac','TV-01':'tv'})[s.id];return INFO[k];}
+function rowsFor(s){const R=[],r=(k,v,c)=>R.push([k,v,c]);r('Sensor ID',s.id);r('Location',s.room);
+ if(s.isAct){r('Type',s.label);r('State',s.val||'OFF',s.st);r('Controlled by',s.dev);r('Rule',s.rule);r('Connection','ONLINE','ok');r('Last action',s.last);return R;}
+ switch(s.kind){
+  case 'cam':r('Type','AI vision · person, face, motion');r('Person detection','ACTIVE','ok');r('Face recognition','ACTIVE'+(s.person?' · '+(s.unknown?'UNKNOWN':'KNOWN (Resident)'):''),s.person?(s.unknown?'crit':'active'):'ok');r('Motion detection',s.person?'TRIGGERED':'ACTIVE',s.person?'warn':'ok');
+   r('Threat level',s.person&&s.unknown?(s.perim==='high'?'HIGH':'MEDIUM'):'LOW',s.person&&s.unknown?(s.perim==='high'?'danger':'warn'):'ok');r('Camera status','ONLINE','ok');r('Field of view',Math.round(s.fov/D2R)+'° · '+s.range+' m');break;
+  case 'pir':r('Type','Passive infrared motion');r('Detection',s.det?'HUMAN DETECTED':'NO MOTION',s.st);r('Range',s.range+' meters · '+Math.round(s.fov/D2R)+'° cone');r('Status',s.det?'ACTIVE':'ARMED',s.det?s.st:'ok');break;
+  case 'door':r('Type','Magnetic reed + IR beam');r('Door',s.open?'OPEN':'CLOSED',s.st);r('Magnetic contact',s.open?'SEPARATED':'ALIGNED');r('IR beam',s.open?'BROKEN':'CLEAR');r('Status',STN[s.st],s.st);break;
+  case 'gas':r('Type','Gas detection (LPG / CH₄ / smoke)');r('Current value',Math.round(state.gas)+' ppm',s.st);r('Threshold',T.gas.crit+' ppm (warning at '+T.gas.warn+')');r('Status',STN[s.st],s.st);break;
+  case 'flame':r('Type','Infrared flame detection');r('Reading',state.flame?'FLAME DETECTED':'NO FLAME',s.st);r('IR intensity',Math.round(state.flameIR)+' / 1023');r('Risk level',state.flame?'CRITICAL':'LOW',state.flame?'crit':'ok');r('Sensor status',state.flame?'TRIGGERED':'ARMED',s.st);break;
+  case 'smoke':r('Type','Smoke / particulate detection');r('Smoke level',Math.round(state.smoke)+' ppm',s.st);r('Threshold',T.smoke.crit+' ppm (warning at '+T.smoke.warn+')');r('Status',STN[s.st],s.st);break;
+  case 'dht':r('Type','Temperature & humidity');r('Temperature',state.temp.toFixed(1)+' °C',s.st);r('Humidity',Math.round(state.hum)+' %');r('Thresholds','warn '+T.temp.warn+' °C · critical '+T.temp.crit+' °C');r('Status',STN[s.st],s.st);break;}
+ r('Connection','ONLINE','ok');r('Connected device',s.dev);r('Last event',s.last);r('Last update',sim.running?'Live · '+fmt(sim.clock):'Paused');return R;}
+function updateDetails(){if(!detS){if(curRoom)roomPanel();return;}const s=detS;const stt=s.isAct?(s.val||'OFF'):STN[s.st];
+ const I=infoFor(s)||{n:s.label,short:'',what:'',how:'',when:''};
+ const about='<div class="about"><b>What is '+I.n+'?</b><p>'+I.what+'</p><dl><dt>HOW IT WORKS</dt><dd>'+I.how+'</dd><dt>RAISES AN ALERT WHEN</dt><dd>'+I.when+'</dd><dt>IN THIS HOME</dt><dd>'+s.id+' is in the '+s.room+' and connects to '+s.dev+'.</dd></dl></div>';
+ const cl=$('call');cl.style.display='block';cl.innerHTML='<b>'+s.label+' <span class="chip c-'+s.st+'">'+stt+'</span></b><p>'+I.short+'</p><em>'+s.id+' · '+s.room+' · '+(s.val||'–')+'</em>';
+ const back=(s.rk&&ROOMBY[s.rk])?'<button class="back" data-back="'+s.rk+'">← '+ROOMBY[s.rk].n+' overview</button>':'';$('detBody').__h=null;$('detBody').className='';$('detBody').innerHTML=back+'<div class="hd"><strong>'+s.label+'</strong><span class="chip c-'+s.st+'">'+stt+'</span></div>'+about+rowsFor(s).map(r=>'<div class="r"><span>'+r[0]+'</span><b class="'+(r[2]?'c-'+r[2]:'')+'">'+r[1]+'</b></div>').join('');
+ const key={gas:'gas',smoke:'smoke',dht:'temp'}[s.kind],sp=$('spark');if(key){sp.style.display='block';const g=sp.getContext('2d'),w=sp.width,h=sp.height,a=HIST[key],lim=key==='temp'?T.temp:T[key];g.clearRect(0,0,w,h);
+  const mx=Math.max(lim.crit*1.15,...a,1),mn=key==='temp'?15:0,y=v=>h-4-(v-mn)/(mx-mn)*(h-8);g.strokeStyle='rgba(239,68,68,.6)';g.setLineDash([6,5]);g.beginPath();g.moveTo(0,y(lim.crit));g.lineTo(w,y(lim.crit));g.stroke();g.setLineDash([]);
+  g.strokeStyle=SC[s.st];g.lineWidth=3;g.beginPath();a.forEach((v,i)=>{const x=i/79*w;i?g.lineTo(x,y(v)):g.moveTo(x,y(v));});g.stroke();}else sp.style.display='none';}
+function select(s){if(selected)selected.sel=false;selected=s;detS=s;if(s){s.sel=true;if(s.kind==='cam')setFeed(s.id);}
+ if(s){updateDetails();const rc=document.querySelector('.right');if(rc&&rc.scrollTo)rc.scrollTo({top:0,behavior:'smooth'});}else{detS=null;$('call').style.display='none';if(curRoom)roomPanel();else{$('detBody').__h=null;$('detBody').className='empty';$('detBody').textContent='Click any room or sensor in the 3D model to open it.';$('spark').style.display='none';}}}
+
+/* ============ camera navigation ============ */
+const FIT={x0:-9.8,x1:9.8,z0:-7,z1:8.6,y0:-.2,y1:2,cx:0,cy:.5,cz:.8};
+const fitCam=new THREE.PerspectiveCamera(30,1,1,600),_v=new THREE.Vector3();
+function fitDist(az,el,mg){fitCam.fov=camera.fov;fitCam.aspect=camera.aspect;fitCam.updateProjectionMatrix();const C=[];[FIT.x0,FIT.x1].forEach(x=>[FIT.y0,FIT.y1].forEach(y=>[FIT.z0,FIT.z1].forEach(z=>C.push([x,y,z]))));
+ const ce=Math.cos(el),se=Math.sin(el),ext=d=>{fitCam.position.set(FIT.cx+d*ce*Math.sin(az),FIT.cy+d*se,FIT.cz+d*ce*Math.cos(az));fitCam.lookAt(FIT.cx,FIT.cy,FIT.cz);fitCam.updateMatrixWorld();let m=0;C.forEach(c=>{_v.set(c[0],c[1],c[2]).project(fitCam);m=Math.max(m,Math.abs(_v.x),Math.abs(_v.y));});return m;};
+ let lo=8,hi=400;for(let i=0;i<28;i++){const mid=(lo+hi)/2;if(ext(mid)>(mg||.9))lo=mid;else hi=mid;}return hi;}
+const PRE={home:[0,52],iso:[36,44],top:[0,89],front:[0,24]};
+const V={az:0,el:52*D2R,dist:30,tx:FIT.cx,tz:FIT.cz,ref:30},G={az:0,el:52*D2R,dist:30,tx:FIT.cx,tz:FIT.cz};
+let curPre='home',userMoved=false,vpW=800,vpH=500;
+function setView(n,instant){curPre=n;userMoved=false;const p=PRE[n];G.el=p[1]*D2R;G.az=V.az+wrapPi(p[0]*D2R-V.az);G.dist=fitDist(p[0]*D2R,p[1]*D2R);G.tx=FIT.cx;G.tz=FIT.cz;if(instant)Object.assign(V,{az:G.az,el:G.el,dist:G.dist,tx:G.tx,tz:G.tz});}
+document.querySelectorAll('.tools [data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+function applyCam(dt){const k=1-Math.exp(-dt*9);['az','el','dist','tx','tz'].forEach(p=>V[p]+=(G[p]-V[p])*k);const ce=Math.cos(V.el),bob=Math.sin(performance.now()/1100)*.1;camera.position.set(V.tx+V.dist*ce*Math.sin(V.az),FIT.cy+bob+V.dist*Math.sin(V.el),V.tz+V.dist*ce*Math.cos(V.az));camera.lookAt(V.tx,FIT.cy+bob,V.tz);}
+const ptr=new Map();let moved=false,pinch0=0;
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('pointerdown',e=>{try{canvas.setPointerCapture(e.pointerId);}catch(x){}ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,b:e.button});moved=false;if(ptr.size===2){const a=[...ptr.values()];pinch0=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);}canvas.style.cursor='grabbing';});
+function pan(dx,dy){const sc=G.dist*Math.tan(camera.fov*D2R/2)*2/vpH,sa=Math.sin(G.az),ca=Math.cos(G.az),ce=Math.max(Math.sin(G.el),.35);G.tx=clamp(G.tx-ca*dx*sc-sa*dy*sc/ce,-14,14);G.tz=clamp(G.tz+sa*dx*sc-ca*dy*sc/ce,-14,14);}
+canvas.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p){hoverAt(e);return;}const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+ if(Math.hypot(e.clientX-p.sx,e.clientY-p.sy)>4)moved=true;if(!moved)return;userMoved=true;
+ if(ptr.size===1){if(p.b===2||p.b===1||e.shiftKey)pan(dx,dy);else{G.az-=dx*.005;G.el=clamp(G.el+dy*.005,.14,1.553);}}
+ else if(ptr.size===2){const a=[...ptr.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(pinch0>0)G.dist=clamp(G.dist*pinch0/d,V.ref*.5,V.ref*2.4);pinch0=d;pan(dx/2,dy/2);}});
+function endP(e){const p=ptr.get(e.pointerId);ptr.delete(e.pointerId);canvas.style.cursor='grab';if(p&&!moved&&ptr.size===0&&e.type==='pointerup'){const s=pickAt(e.clientX,e.clientY);if(s)select(s);else{const rm=pickRoomAt(e.clientX,e.clientY);if(rm)selectRoom(rm.k);else select(null);}}}
+canvas.addEventListener('pointerup',endP);canvas.addEventListener('pointercancel',endP);
+canvas.addEventListener('wheel',e=>{e.preventDefault();userMoved=true;G.dist=clamp(G.dist*Math.exp(e.deltaY*.0012),V.ref*.5,V.ref*2.4);},{passive:false});
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function pickAt(cx,cy){const r=canvas.getBoundingClientRect();ndc.set((cx-r.left)/r.width*2-1,-((cy-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);const h=ray.intersectObjects(pickables,false);return h.length?h[0].object.userData.s:null;}
+const tip=$('tip');
+function setHover(s,e){if(hovered)hovered.hov=false;hovered=s;if(s){s.hov=true;canvas.style.cursor='pointer';tip.style.display='block';tip.textContent=s.id+' · '+s.label+' · '+(s.val||'–');
+ if(e){const r=vp.getBoundingClientRect();tip.style.left=Math.min(e.clientX-r.left+14,vpW-230)+'px';tip.style.top=Math.max(e.clientY-r.top-30,4)+'px';}}else{tip.style.display='none';canvas.style.cursor='grab';}}
+function hoverAt(e){const s=pickAt(e.clientX,e.clientY);setHover(s,e);hoverRoom=null;if(!s){const r=pickRoomAt(e.clientX,e.clientY);hoverRoom=r;if(r){canvas.style.cursor='pointer';tip.style.display='block';tip.textContent=r.n+' · click to open room';const b=vp.getBoundingClientRect();tip.style.left=Math.min(e.clientX-b.left+14,vpW-200)+'px';tip.style.top=Math.max(e.clientY-b.top-30,4)+'px';}}}
+canvas.addEventListener('pointerleave',()=>{if(!ptr.size){setHover(null);hoverRoom=null;}});
+
+/* ============ labels ============ */
+const LBL=[],leadSvg=$('lead'),labelLayer=$('labels'),NS='http://www.w3.org/2000/svg';
+ALL.forEach(s=>{if(s.id.indexOf('RLY')===0&&false)return;const el=document.createElement('div');el.className='tag'+(s.isAct?' act':'');el.style.setProperty('--sc',s.isAct?'#c4b5fd':KINDS[s.kind].col);
+ el.innerHTML='<b>'+s.id+'</b><span>'+s.label+'</span><i>'+s.room+'</i>';labelLayer.appendChild(el);
+ const ln=document.createElementNS(NS,'line');ln.setAttribute('stroke','rgba(160,170,255,.55)');ln.setAttribute('stroke-width','1');leadSvg.appendChild(ln);
+ el.addEventListener('click',()=>select(s));el.addEventListener('pointerenter',()=>setHover(s));el.addEventListener('pointerleave',()=>setHover(null));
+ LBL.push({s,el,ln,w:96,h:38,wm:60,hm:16,idx:0,mini:false});});
+function measure(){LBL.forEach(l=>{l.el.classList.remove('mini');l.w=l.el.offsetWidth||96;l.h=l.el.offsetHeight||38;l.el.classList.add('mini');l.wm=l.el.offsetWidth||60;l.hm=l.el.offsetHeight||16;l.el.classList.toggle('mini',l.mini);});}
+const ANG=[-90,-50,-130,0,180,50,130,90],pv=new THREE.Vector3();
+function ov(a,b,p){return a.x<b.x+b.w+p&&a.x+a.w+p>b.x&&a.y<b.y+b.h+p&&a.y+a.h+p>b.y;}
+function layout(){const on=labelsOn;labelLayer.style.display=on?'block':'none';leadSvg.style.display=on?'block':'none';if(!on)return;
+ const fr=feedRect,items=[];
+ LBL.forEach(l=>{const s=l.s;pv.copy(s.pos);pv.y+=.32;pv.project(camera);l.ax=(pv.x*.5+.5)*vpW;l.ay=(-pv.y*.5+.5)*vpH;l.ok=(!s.isAct||s.core||s.sel||s.hov||s.on||actLab||performance.now()<s.pulseUntil)&&pv.z<1&&pv.z>-1&&l.ax>-40&&l.ax<vpW+40&&l.ay>-40&&l.ay<vpH+40&&!(fr&&l.ax>fr.x&&l.ax<fr.x+fr.w&&l.ay>fr.y&&l.ay<fr.y+fr.h);
+  l.pri=s.sel?0:s.hov?1:(legendKind===s.kind||performance.now()<s.pulseUntil)?2:(!s.isAct&&s.st!=='ok')?3:s.isAct?6:4;if(l.ok)items.push(l);else l.el.style.opacity=0,l.ln.setAttribute('opacity',0);});
+ items.sort((a,b)=>a.pri-b.pri);const placed=[];if(fr)placed.push({x:fr.x,y:fr.y,w:fr.w,h:fr.h});
+ items.forEach(l=>{let best=null;
+  for(const mini of(l.s.isAct?[false,true]:[false,true])){const w=mini?l.wm:l.w,h=mini?l.hm:l.h;const order=[];const pref=l.mini===mini?l.idx:-1;if(pref>=0)order.push(pref);for(let i=0;i<24;i++)if(i!==pref)order.push(i);
+   for(const i of order){const r=[26,52,84][Math.floor(i/8)],a=ANG[i%8]*D2R,c=Math.cos(a),sn=Math.sin(a),cx=l.ax+c*(r+w/2*Math.abs(c)),cy=l.ay+sn*(r+h/2*Math.abs(sn)),R={x:cx-w/2,y:cy-h/2,w,h};
+    if(R.x<2||R.y<2||R.x+w>vpW-2||R.y+h>vpH-2)continue;if(placed.some(p=>ov(R,p,3)))continue;best={R,mini,i};break;}
+   if(best)break;}
+  if(!best){const w=l.wm,h=l.hm;best={R:{x:clamp(l.ax-w/2,2,vpW-w-2),y:clamp(l.ay-38,2,vpH-h-2),w,h},mini:true,i:0,force:true};}
+  if(best.force&&l.s.isAct){l.el.style.opacity=0;l.ln.setAttribute('opacity',0);return;}
+  l.idx=best.i;if(l.mini!==best.mini){l.mini=best.mini;l.el.classList.toggle('mini',l.mini);}placed.push(best.R);
+  l.el.style.transform='translate('+best.R.x.toFixed(1)+'px,'+best.R.y.toFixed(1)+'px)';
+  const dim=legendKind&&legendKind!==l.s.kind&&!l.s.isAct;l.el.style.opacity=dim?.3:1;l.el.style.setProperty('--sc',l.s.isAct?'#c4b5fd':SC[l.s.st]);l.el.classList.toggle('hl',legendKind===l.s.kind||l.s.sel);
+  const R=best.R;l.ln.setAttribute('x1',l.ax);l.ln.setAttribute('y1',l.ay);l.ln.setAttribute('x2',clamp(l.ax,R.x,R.x+R.w));l.ln.setAttribute('y2',clamp(l.ay,R.y,R.y+R.h));l.ln.setAttribute('opacity',dim?.15:.8);});}
+
+/* ============ live camera feed inset ============ */
+const fCams=SENS.filter(s=>s.kind==='cam');let feedCam=fCams[0],feedRect=null;
+$('fSel').innerHTML=fCams.map((c,i)=>'<button data-c="'+c.id+'">'+(i+1)+'</button>').join('');
+$('fSel').onclick=e=>{const b=e.target.closest('button');if(b)setFeed(b.dataset.c);};
+function setFeed(id){feedCam=fCams.find(c=>c.id===id)||feedCam;$('fTitle').textContent=feedCam.id+' · '+feedCam.room;document.querySelectorAll('#fSel button').forEach(b=>b.classList.toggle('on',b.dataset.c===feedCam.id));}
+setFeed('CAM-01');
+const insetCam=new THREE.PerspectiveCamera(58,1.7,.1,200),insetBg=new THREE.Color(0x0a1226);
+function measureFeed(){}
+function renderFeed(){const fw=Math.min(400,vpW),fh=Math.round(fw*9/16);if(fh>vpH||fw<40)return;const c=feedCam,ce=Math.cos(c.pitch),dir=new THREE.Vector3(Math.sin(c.yaw)*ce,-Math.sin(c.pitch),Math.cos(c.yaw)*ce);
+ insetCam.aspect=fw/fh;insetCam.updateProjectionMatrix();insetCam.position.copy(c.pos).addScaledVector(dir,.35);insetCam.lookAt(c.pos.clone().addScaledVector(dir,6));insetCam.updateMatrixWorld();
+ overlay.visible=false;scene.background=insetBg;renderer.setScissorTest(true);renderer.setViewport(0,0,fw,fh);renderer.setScissor(0,0,fw,fh);renderer.render(scene,insetCam);
+ renderer.setScissorTest(false);scene.background=null;overlay.visible=true;
+ const pr=renderer.getPixelRatio(),fc=$('fcv');try{fc.getContext('2d').drawImage(canvas,0,Math.round((vpH-fh)*pr),Math.round(fw*pr),Math.round(fh*pr),0,0,fc.width,fc.height);}catch(e){}
+ renderer.setViewport(0,0,vpW,vpH);
+ const fb=$('fb'),a=c.seen,bx=$('fv'),bw=bx.clientWidth,bh=bx.clientHeight;
+ if(a){const top=new THREE.Vector3(a.x,1.65+a.mesh.position.y,a.z).project(insetCam),bot=new THREE.Vector3(a.x,a.mesh.position.y,a.z).project(insetCam);
+  if(top.z<1&&bot.z<1){const sx=v=>(v.x*.5+.5)*bw,sy=v=>(-v.y*.5+.5)*bh,h=Math.abs(sy(bot)-sy(top)),w=h*.5;fb.style.display='block';fb.style.left=(sx(top)-w/2)+'px';fb.style.top=sy(top)+'px';fb.style.width=w+'px';fb.style.height=h+'px';
+   const col=a.d.known?'#22d3ee':'#ef4444';fb.style.borderColor=col;$('fbt').style.background=col;$('fbt').textContent=a.d.known?'KNOWN · RESIDENT 96%':'UNKNOWN PERSON 91%';}else fb.style.display='none';}else fb.style.display='none';}
+
+/* ============ main loop ============ */
+function resize(){const w=vp.clientWidth,h=vp.clientHeight;if(!w||!h)return;vpW=w;vpH=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();V.ref=fitDist(0,52*D2R);if(!userMoved)setView(curPre,true);else{G.dist=clamp(G.dist,V.ref*.5,V.ref*2.4);}measureFeed();measure();}
+if(window.ResizeObserver)new ResizeObserver(resize).observe(vp);window.addEventListener('resize',resize);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{measure();});
+let spd=1;$('spdRow').onclick=e=>{const b=e.target.closest('button');if(!b)return;spd=+b.dataset.s;document.querySelectorAll('#spdRow .btn').forEach(x=>x.classList.toggle('on',x===b));};
+let last=performance.now(),acc=0,acc5=0,acc4=0;
+function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;const t=now/1000;
+ if(sim.running){const sd=dt*spd;sim.t+=sd;sim.clock+=sd*12;stepScenario();updateEnv(sd);stepActors(sd,t);}
+ acc+=dt;if(acc>=.1){acc=0;updateSensors();evaluate();updateDevices();updateRooms();}
+ acc4+=dt;if(acc4>=.25){acc4=0;if(sim.running){HIST.gas.push(state.gas);HIST.smoke.push(state.smoke);HIST.temp.push(state.temp);Object.values(HIST).forEach(a=>{while(a.length>80)a.shift();});drawOLED();}}
+ acc5+=dt;if(acc5>=.2){acc5=0;dashUpdate();}
+ visualsUpdate(sim.running?dt:0,t,now);fxUpdate(sim.running?dt:0,t);beep(now);
+ /* halos, fov, connections */
+ for(const s of ALL){const emph=legendKind===s.kind||now<s.pulseUntil,dim=legendKind&&legendKind!==s.kind&&!s.isAct;const pu=.5+.5*Math.sin(t*(s.st==='ok'||s.st==='off'?2:7)+s.ph);
+  s.sc+=((1+(s.hov?.22:0)+(s.sel?.15:0)+(emph?.15:0))-s.sc)*.25;s.g.scale.setScalar(s.baseScale*s.sc);
+  s.halo.material.color.setHex(SH(s.st));s.halo.scale.setScalar((s.isAct?.5:.78)*(1+.14*pu+(emph?.7*pu+.2:0)+(s.sel?.3:0)+(s.hov?.25:0)));s.halo.material.opacity=dim?.2:.65+.3*pu;
+  if(s.fovG){const show=s.kind==='cam'?(fovOn||s.sel||emph):(s.sel||s.det||emph);s.fovG.visible=show;if(show){const col=s.kind==='cam'?(s.person&&s.unknown?0xef4444:s.person?0x22d3ee:0x22d3ee):(s.det?(s.st==='active'?0x22d3ee:0xfb923c):0x22d3ee);if(s.fc!==col){s.fc=col;s.fovG.userData.mats.forEach(m=>m.color.setHex(col));}s.fovG.userData.mats[0].opacity=(s.person||s.det)?.26:.13;}}}
+ conns.forEach(c=>{const s=c.s;c.line.visible=connOn||s.sel;c.dot.visible=connOn||s.sel;if(sim.running)c.u=(c.u+dt*(s.st==='ok'||s.st==='off'?.35:1.1))%1;c.dot.position.copy(c.c.getPoint(c.u));
+  c.line.material.opacity=s.sel?.95:s.hov?.7:(s.isAct?(s.on?.5:.1):(s.st!=='ok'?.6:.13));const col=s.isAct?0xa78bfa:(s.st==='ok'?0x22d3ee:SH(s.st));c.line.material.color.setHex(col);c.dot.material.color.setHex(s.isAct?(s.on?0xc4b5fd:0x475569):(s.st==='ok'?0x67e8f9:SH(s.st)));c.dot.scale.setScalar(s.st==='ok'||s.st==='off'?1:1.6);});
+ if(selected){selRing.visible=true;selRing.position.copy(selected.pos);const k=1.1+.25*Math.sin(t*5);selRing.scale.set(k,k,1);selRing.material.color.setHex(SH(selected.st==='off'?'active':selected.st));}else selRing.visible=false;
+ for(const k in actors){const a=actors[k];if(!a.active)continue;const insideAny=SENS.some(s=>s.kind==='cam'&&s.person&&s.seen===a);a.ring.material.color.setHex(insideAny?(a.d.known?0x22d3ee:0xef4444):0x94a3b8);a.ring.material.opacity=insideAny?.95:.35;}
+ roomVisuals(t);applyCam(dt);
+ renderFeed();renderer.setViewport(0,0,vpW,vpH);renderer.render(scene,camera);layout();pinsLayout();}
+
+/* ============ init ============ */
+renderAlerts();syncSim();resize();setView('home',true);measureFeed();measure();
+updateSensors();evaluate();updateDevices();updateRooms();drawOLED();dashUpdate();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
